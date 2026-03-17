@@ -1,0 +1,22 @@
+{
+  "name": "@moly/lido-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "lido-mcp": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lidofinance/lido-ethereum-sdk": "^3.4.0",
+    "@modelcontextprotocol/sdk": "^1.10.1",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
