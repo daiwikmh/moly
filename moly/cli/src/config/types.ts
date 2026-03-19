@@ -2,6 +2,29 @@ export type Network = 'hoodi' | 'mainnet';
 export type Mode = 'simulation' | 'live';
 export type AiProvider = 'anthropic' | 'google' | 'openrouter' | null;
 export type AiClient = 'claude-desktop' | 'cursor' | 'windsurf' | null;
+export type L2Chain = 'base' | 'arbitrum';
+
+export interface L2ChainConfig {
+  chainId: number;
+  name: string;
+  defaultRpc: string;
+  wstETH: `0x${string}`;
+}
+
+export const L2_CHAINS: Record<L2Chain, L2ChainConfig> = {
+  base: {
+    chainId: 8453,
+    name: 'Base',
+    defaultRpc: 'https://mainnet.base.org',
+    wstETH: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452',
+  },
+  arbitrum: {
+    chainId: 42161,
+    name: 'Arbitrum One',
+    defaultRpc: 'https://arb1.arbitrum.io/rpc',
+    wstETH: '0x5979D7b546E38E9Ab8049dCFAc0B5D35A8De3f6e',
+  },
+};
 
 export interface AiConfig {
   provider: AiProvider;

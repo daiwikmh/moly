@@ -1,10 +1,10 @@
 import { createPublicClient, createWalletClient, http, defineChain } from 'viem';
-import { mainnet } from 'viem/chains';
+import { mainnet, base, arbitrum } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { LidoSDK } from '@lidofinance/lido-ethereum-sdk';
 import { loadConfig, saveConfig } from '../config/store.js';
-import { CHAIN_CONFIG } from '../config/types.js';
-import type { MolyConfig, Network, Mode } from '../config/types.js';
+import { CHAIN_CONFIG, L2_CHAINS } from '../config/types.js';
+import type { MolyConfig, Network, Mode, L2Chain } from '../config/types.js';
 
 // Hoodi is not in viem/chains yet — define it manually
 const hoodi = defineChain({
@@ -14,6 +14,8 @@ const hoodi = defineChain({
   rpcUrls: { default: { http: ['https://hoodi.drpc.org'] } },
 });
 
+const L2_VIEM_CHAINS: Record<L2Chain, typeof base> = { base, arbitrum };
+
 export interface Runtime {
   config: MolyConfig;
   chainAddresses: typeof CHAIN_CONFIG['hoodi'];
@@ -21,6 +23,8 @@ export interface Runtime {
   sdk: LidoSDK;
   getWallet: () => ReturnType<typeof createWalletClient>;
   getAddress: () => `0x${string}`;
+  getL2PublicClient: (chain: L2Chain) => ReturnType<typeof createPublicClient>;
+  getL2Wallet: (chain: L2Chain) => ReturnType<typeof createWalletClient>;
   reload: () => void;
 }
 
@@ -63,6 +67,28 @@ function buildRuntime(): Runtime {
     return privateKeyToAccount(pk as `0x${string}`).address;
   }
 
+  const _l2Clients: Partial<Record<L2Chain, ReturnType<typeof createPublicClient>>> = {};
+  const _l2Wallets: Partial<Record<L2Chain, ReturnType<typeof createWalletClient>>> = {};
+
+  function getL2PublicClient(chain: L2Chain) {
+    if (_l2Clients[chain]) return _l2Clients[chain]!;
+    const cfg = L2_CHAINS[chain];
+    const client = createPublicClient({ chain: L2_VIEM_CHAINS[chain], transport: http(cfg.defaultRpc) });
+    _l2Clients[chain] = client;
+    return client;
+  }
+
+  function getL2Wallet(chain: L2Chain) {
+    if (_l2Wallets[chain]) return _l2Wallets[chain]!;
+    const pk = config.privateKey;
+    if (!pk) throw new Error('No private key configured. Run: moly setup');
+    const account = privateKeyToAccount(pk as `0x${string}`);
+    const cfg = L2_CHAINS[chain];
+    const wallet = createWalletClient({ account, chain: L2_VIEM_CHAINS[chain], transport: http(cfg.defaultRpc) });
+    _l2Wallets[chain] = wallet;
+    return wallet;
+  }
+
   return {
     config,
     chainAddresses: chainCfg,
@@ -70,6 +96,8 @@ function buildRuntime(): Runtime {
     sdk,
     getWallet,
     getAddress,
+    getL2PublicClient,
+    getL2Wallet,
     reload() { _runtime = null; },
   };
 }
