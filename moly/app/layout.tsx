@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import { ModeProvider } from "./context/ModeContext";
 import "./globals.css";
 
@@ -13,9 +13,25 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument",
+  subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  subsets: ["latin"],
+  weight: "400",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Moly — Lido MCP Dashboard",
-  description: "AI-native staking dashboard powered by Lido MCP",
+  title: "Moly — Lido MCP Server",
+  description: "AI-native Lido staking via Model Context Protocol. Stake ETH, manage positions, and participate in DAO governance through 15 MCP tools.",
 };
 
 export default function RootLayout({
@@ -25,10 +41,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ModeProvider>
-          {children}
-        </ModeProvider>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}
+      >
+        <ModeProvider>{children}</ModeProvider>
       </body>
     </html>
   );

@@ -72,8 +72,8 @@ const OPENROUTER_MODELS = [
 async function pickModel(provider: AiProvider): Promise<string> {
   const models =
     provider === 'anthropic' ? CLAUDE_MODELS :
-    provider === 'google'    ? GEMINI_MODELS :
-                               OPENROUTER_MODELS;
+      provider === 'google' ? GEMINI_MODELS :
+        OPENROUTER_MODELS;
 
   const picked = check(
     await select({
@@ -90,7 +90,7 @@ async function pickModel(provider: AiProvider): Promise<string> {
   return picked;
 }
 
-export async function runWizard(): Promise<MolyConfig> {
+export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: boolean }> {
   intro('  Moly — Lido MCP Server  ⬡');
 
   // ── Network ──────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ export async function runWizard(): Promise<MolyConfig> {
       placeholder: 'https://...',
     })
   ) as string;
-  const rpc = rpcInput.trim() || null;
+  const rpc = rpcInput?.trim() || null;
 
   // ── Mode ──────────────────────────────────────────────────────────
   const mode = check(
@@ -147,10 +147,11 @@ export async function runWizard(): Promise<MolyConfig> {
     await select({
       message: 'AI Provider?  (optional — used for built-in chat + config snippet)',
       options: [
-        { value: 'none', label: 'None / Skip' },
+        { value: 'openrouter', label: 'OpenRouter  (access any model with one key)' },
         { value: 'anthropic', label: 'Anthropic  (Claude)' },
         { value: 'google', label: 'Google  (Gemini)' },
-        { value: 'openrouter', label: 'OpenRouter  (access any model with one key)' },
+        { value: 'none', label: 'None / Skip' },
+
       ],
     })
   ) as string;
@@ -176,10 +177,10 @@ export async function runWizard(): Promise<MolyConfig> {
     await select({
       message: 'Which AI client are you using?  (for config snippet)',
       options: [
+        { value: 'Integrated Terminal', label: 'Moly Environment' },
         { value: 'claude-desktop', label: 'Claude Desktop' },
         { value: 'cursor', label: 'Cursor' },
         { value: 'windsurf', label: 'Windsurf / Codeium' },
-        { value: 'none', label: 'Skip' },
       ],
     })
   ) as string;
@@ -203,7 +204,14 @@ export async function runWizard(): Promise<MolyConfig> {
     note(snippet, 'Add to your AI client config');
   }
 
-  outro(`Starting Moly MCP Server...  ${mode} · ${network} · ready`);
+  // If AI is configured and no AI client chosen, terminal becomes the client
+  const terminalMode = ai !== null && clientChoice === 'Integrated Terminal';
 
-  return cfg;
+  if (terminalMode) {
+    outro(`Launching Moly Terminal...  ${mode} · ${network} · ready`);
+  } else {
+    outro(`Starting Moly MCP Server...  ${mode} · ${network} · ready`);
+  }
+
+  return { cfg, terminalMode };
 }

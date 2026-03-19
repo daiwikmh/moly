@@ -1,0 +1,157 @@
+# Moly — Lido MCP Server + Dashboard + CLI
+
+> Connect any MCP-compatible AI agent to the Lido staking protocol on Ethereum.
+> Stake ETH, manage positions, wrap/unwrap tokens, handle withdrawals, and participate in DAO governance through 15 MCP tools.
+
+## Site Structure
+
+- / — Landing page (overview, install guide, developer docs links)
+- /dashboard — AI chat dashboard with live Lido data, simulation/live toggle, testnet/mainnet toggle
+- /docs — Full documentation
+- /docs/setup — Installation guide
+- /docs/configuration — Configuration reference
+- /docs/architecture — System architecture
+- /docs/mcp-server — MCP server overview
+- /docs/mcp-server/connect — Connect any agent
+- /docs/mcp-server/code-samples — Code samples
+- /docs/cli — CLI package (npx @moly/lido)
+- /docs/cli/setup — Setup wizard
+- /docs/cli/configuration — Config reference
+- /docs/tools — All tools overview
+- /docs/tools/read — Read tools
+- /docs/tools/write — Write tools
+- /docs/tools/governance — Governance tools
+
+## MCP Endpoint
+
+URL: https://moly-mcp.vercel.app/api/mcp
+Transport: Streamable HTTP (POST)
+Authentication: None required
+
+## Configuration Headers (optional)
+
+- x-lido-mode: "simulation" (default) | "live"
+- x-lido-network: "testnet" (default) | "mainnet"
+- x-lido-chain: "hoodi" (default for testnet) | "ethereum" (default for mainnet)
+
+## All Tools (15)
+
+### Read Tools (7)
+
+get_balance
+  Get ETH, stETH, and wstETH balances for an Ethereum address.
+  Params: address (string, required)
+  Returns: { address, network, chain, balances: { eth, stETH, wstETH } }
+
+get_rewards
+  Get staking reward history for an address.
+  Params: address (string), days (number, default 7)
+  Returns: { address, network, period, note }
+
+get_conversion_rate
+  Get current stETH/wstETH exchange rate.
+  Params: none
+  Returns: { network, 1_stETH_in_wstETH, 1_wstETH_in_stETH, note }
+
+get_withdrawal_requests
+  Get pending withdrawal request IDs for an address.
+  Params: address (string)
+  Returns: { address, network, requests, count }
+
+get_withdrawal_status
+  Get finalization status for specific withdrawal requests.
+  Params: request_ids (string[])
+  Returns: { network, requestIds, statuses }
+
+get_proposals
+  Get recent Lido DAO governance proposals with vote counts.
+  Params: count (number, default 5)
+  Returns: { network, total, proposals: [{ id, open, executed, startDate, yea, nay, votingPower }] }
+
+get_proposal
+  Get full details for a single governance proposal.
+  Params: proposal_id (number)
+  Returns: { network, id, open, executed, startDate, snapshotBlock, supportRequired, minAcceptQuorum, yea, nay, votingPower }
+
+### Write Tools (6)
+
+All write tools return simulation results by default (gas estimates, expected outputs).
+Set dry_run: false to broadcast real transactions.
+
+stake_eth
+  Stake ETH to receive stETH.
+  Params: amount (string), dry_run (boolean, default true)
+  Returns: { simulated, network, action, amountEth, estimatedGas, expectedStETH, mode, note }
+
+request_withdrawal
+  Queue stETH for withdrawal from Lido.
+  Params: amount (string), dry_run (boolean, default true)
+  Returns: { simulated, network, action, amountSteth, note }
+
+claim_withdrawals
+  Claim ETH from finalized withdrawal requests.
+  Params: request_ids (string[]), dry_run (boolean, default true)
+  Returns: { simulated, network, action, requestIds, note }
+
+wrap_steth
+  Wrap stETH into wstETH (non-rebasing DeFi wrapper).
+  Params: amount (string), dry_run (boolean, default true)
+  Returns: { simulated, network, action, amountSteth, expectedWstETH, note }
+
+unwrap_wsteth
+  Unwrap wstETH back to stETH.
+  Params: amount (string), dry_run (boolean, default true)
+  Returns: { simulated, network, action, amountWsteth, expectedStETH, note }
+
+cast_vote
+  Cast a vote on a Lido DAO governance proposal.
+  Params: proposal_id (number), support (boolean), dry_run (boolean, default true)
+  Returns: { simulated, network, action, proposalId, vote, proposal, note }
+
+## Supported Networks
+
+Hoodi Testnet (default)
+  Chain ID: 560048
+  stETH: 0x3508A952...
+  wstETH: 0x7E99eE3C...
+  Withdrawal Queue: 0xfe56573...
+  Voting: 0x49B3512c...
+
+Ethereum Mainnet
+  Chain ID: 1
+  stETH: 0xae7ab965...
+  wstETH: 0x7f39C581...
+  Withdrawal Queue: 0x889edC2e...
+  Voting: 0x2e59A20f...
+
+## CLI Package
+
+Package: @moly/lido
+Install: npx @moly/lido
+Purpose: Interactive setup wizard. Configures Claude Desktop and other MCP clients automatically.
+
+## Dashboard
+
+URL: https://moly-mcp.vercel.app/dashboard
+Features:
+- AI chat powered by Claude (Sonnet)
+- Real-time Lido data sidebar (balances, APR, governance proposals)
+- Simulation mode: dry-run all transactions before signing
+- Live mode: broadcast real transactions
+- Testnet (Hoodi) and Mainnet support
+- Track any Ethereum address
+
+## Tech Stack
+
+- Next.js 16, TypeScript
+- Lido Ethereum SDK v4.7.0
+- Model Context Protocol SDK v1.27.1
+- Vercel AI SDK
+- Viem v2, Tailwind CSS v4
+
+## Source
+
+GitHub: https://github.com/daiwikmh/moly
+Docs: https://moly-mcp.vercel.app/docs
+Dashboard: https://moly-mcp.vercel.app/dashboard
+MCP endpoint: https://moly-mcp.vercel.app/api/mcp

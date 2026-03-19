@@ -26,6 +26,23 @@ Key facts:
 When showing results, be concise. Format numbers to 4 decimal places for balances.
 Always mention which network and chain you're operating on.`;
 
+function withTimeout<T>(fn: () => Promise<T>, ms = 12000): Promise<T> {
+  return Promise.race([
+    fn(),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Tool execution timed out')), ms)
+    ),
+  ]);
+}
+
+async function safeTool<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
+  try {
+    return await withTimeout(fn);
+  } catch (err: any) {
+    return { error: err.message || 'Tool execution failed' };
+  }
+}
+
 export async function POST(req: Request) {
   const { messages: uiMessages, mode: modeRaw, network: networkRaw, chainId: chainIdRaw } = await req.json();
   const mode: Mode = modeRaw === 'live' ? 'live' : 'simulation';
@@ -35,7 +52,7 @@ export async function POST(req: Request) {
   const messages = await convertToModelMessages(uiMessages);
 
   const result = streamText({
-    model: openrouter.chat('nvidia/nemotron-3-super-120b-a12b:free'),
+    model: openrouter.chat('nvidia/nemotron-3-nano-30b-a3b:free'),
     system: SYSTEM_PROMPT,
     messages,
     stopWhen: stepCountIs(5),
@@ -45,7 +62,7 @@ export async function POST(req: Request) {
         inputSchema: z.object({
           address: z.string().describe('Ethereum address (0x...)'),
         }),
-        execute: async ({ address }: { address: string }) => lido.getBalance(ctx, address),
+        execute: async ({ address }: { address: string }) => safeTool(() => lido.getBalance(ctx, address)),
       },
       get_rewards: {
         description: 'Get staking reward history for an address over N days',
@@ -53,75 +70,75 @@ export async function POST(req: Request) {
           address: z.string().describe('Ethereum address'),
           days: z.number().optional().describe('Number of days to look back (default 7)'),
         }),
-        execute: async ({ address, days }: { address: string; days?: number }) => lido.getRewards(ctx, address, days),
+        execute: async ({ address, days }: { address: string; days?: number }) => safeTool(() => lido.getRewards(ctx, address, days)),
       },
       get_conversion_rate: {
         description: 'Get the current stETH/wstETH conversion rate',
         inputSchema: z.object({}),
-        execute: async () => lido.getConversionRate(ctx),
+        execute: async () => safeTool(() => lido.getConversionRate(ctx)),
       },
       get_withdrawal_requests: {
         description: 'List pending withdrawal request IDs for an address',
         inputSchema: z.object({
           address: z.string().describe('Ethereum address'),
         }),
-        execute: async ({ address }: { address: string }) => lido.getWithdrawalRequests(ctx, address),
+        execute: async ({ address }: { address: string }) => safeTool(() => lido.getWithdrawalRequests(ctx, address)),
       },
       get_withdrawal_status: {
         description: 'Check finalization status of withdrawal requests',
         inputSchema: z.object({
           request_ids: z.array(z.string()).describe('Array of withdrawal request IDs'),
         }),
-        execute: async ({ request_ids }: { request_ids: string[] }) => lido.getWithdrawalStatus(ctx, request_ids),
+        execute: async ({ request_ids }: { request_ids: string[] }) => safeTool(() => lido.getWithdrawalStatus(ctx, request_ids)),
       },
       get_proposals: {
         description: 'List recent Lido DAO governance proposals',
         inputSchema: z.object({
           count: z.number().optional().describe('Number of proposals to fetch (default 5)'),
         }),
-        execute: async ({ count }: { count?: number }) => lido.getProposals(ctx, count),
+        execute: async ({ count }: { count?: number }) => safeTool(() => lido.getProposals(ctx, count)),
       },
       get_proposal: {
         description: 'Get detailed info about a specific governance proposal',
         inputSchema: z.object({
           proposal_id: z.number().describe('Proposal ID'),
         }),
-        execute: async ({ proposal_id }: { proposal_id: number }) => lido.getProposal(ctx, proposal_id),
+        execute: async ({ proposal_id }: { proposal_id: number }) => safeTool(() => lido.getProposal(ctx, proposal_id)),
       },
       stake_eth: {
         description: 'Simulate staking ETH to receive stETH (dry run only in dashboard)',
         inputSchema: z.object({
           amount_eth: z.string().describe('Amount of ETH to stake'),
         }),
-        execute: async ({ amount_eth }: { amount_eth: string }) => lido.stakeEth(ctx, amount_eth),
+        execute: async ({ amount_eth }: { amount_eth: string }) => safeTool(() => lido.stakeEth(ctx, amount_eth)),
       },
       request_withdrawal: {
         description: 'Simulate requesting a withdrawal of stETH back to ETH (dry run)',
         inputSchema: z.object({
           amount_steth: z.string().describe('Amount of stETH to withdraw'),
         }),
-        execute: async ({ amount_steth }: { amount_steth: string }) => lido.requestWithdrawal(ctx, amount_steth),
+        execute: async ({ amount_steth }: { amount_steth: string }) => safeTool(() => lido.requestWithdrawal(ctx, amount_steth)),
       },
       claim_withdrawals: {
         description: 'Simulate claiming finalized withdrawals (dry run)',
         inputSchema: z.object({
           request_ids: z.array(z.string()).describe('Array of withdrawal request IDs to claim'),
         }),
-        execute: async ({ request_ids }: { request_ids: string[] }) => lido.claimWithdrawals(ctx, request_ids),
+        execute: async ({ request_ids }: { request_ids: string[] }) => safeTool(() => lido.claimWithdrawals(ctx, request_ids)),
       },
       wrap_steth: {
         description: 'Simulate wrapping stETH to wstETH (dry run)',
         inputSchema: z.object({
           amount_steth: z.string().describe('Amount of stETH to wrap'),
         }),
-        execute: async ({ amount_steth }: { amount_steth: string }) => lido.wrapSteth(ctx, amount_steth),
+        execute: async ({ amount_steth }: { amount_steth: string }) => safeTool(() => lido.wrapSteth(ctx, amount_steth)),
       },
       unwrap_wsteth: {
         description: 'Simulate unwrapping wstETH to stETH (dry run)',
         inputSchema: z.object({
           amount_wsteth: z.string().describe('Amount of wstETH to unwrap'),
         }),
-        execute: async ({ amount_wsteth }: { amount_wsteth: string }) => lido.unwrapWsteth(ctx, amount_wsteth),
+        execute: async ({ amount_wsteth }: { amount_wsteth: string }) => safeTool(() => lido.unwrapWsteth(ctx, amount_wsteth)),
       },
       cast_vote: {
         description: 'Simulate casting a vote on a Lido DAO proposal (dry run)',
@@ -129,7 +146,7 @@ export async function POST(req: Request) {
           proposal_id: z.number().describe('Proposal ID'),
           support: z.boolean().describe('true for YEA, false for NAY'),
         }),
-        execute: async ({ proposal_id, support }: { proposal_id: number; support: boolean }) => lido.castVote(ctx, proposal_id, support),
+        execute: async ({ proposal_id, support }: { proposal_id: number; support: boolean }) => safeTool(() => lido.castVote(ctx, proposal_id, support)),
       },
     },
   });

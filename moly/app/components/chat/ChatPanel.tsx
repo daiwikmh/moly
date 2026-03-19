@@ -1,24 +1,59 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { useMode } from '../../context/ModeContext';
 import { ToolResultCard } from './ToolResultCard';
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 export function ChatPanel() {
   const { mode, network, chainId } = useMode();
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const transport = useMemo(() => new DefaultChatTransport({
-    api: '/api/chat',
-    body: { mode, network, chainId },
-  }), [mode, network, chainId]);
+  // Stable transport instance — we mutate .body when config changes
+  const transportRef = useRef<DefaultChatTransport<UIMessage> | null>(null);
+  if (!transportRef.current) {
+    transportRef.current = new DefaultChatTransport({
+      api: '/api/chat',
+      body: { mode, network, chainId },
+    });
+  }
 
-  const { messages, sendMessage, status, error } = useChat({ transport });
+  // Keep transport body in sync with current config
+  useEffect(() => {
+    if (transportRef.current) {
+      (transportRef.current as any).body = { mode, network, chainId };
+    }
+  }, [mode, network, chainId]);
+
+  const { messages, sendMessage, setMessages, status, error } = useChat({
+    transport: transportRef.current,
+  });
 
   const isLoading = status === 'submitted' || status === 'streaming';
+
+  // When mode/network changes, inject a system notification into the chat
+  const prevConfig = useRef({ mode, network, chainId });
+  useEffect(() => {
+    const prev = prevConfig.current;
+    if (prev.mode !== mode || prev.network !== network || prev.chainId !== chainId) {
+      prevConfig.current = { mode, network, chainId };
+      // Only inject if there are already messages (don't clutter empty state)
+      if (messages.length > 0) {
+        const label = `${network === 'testnet' ? 'Hoodi Testnet' : 'Ethereum Mainnet'} · ${mode === 'simulation' ? 'Simulation' : 'Live'}`;
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `config-${Date.now()}`,
+            role: 'assistant' as const,
+            content: `Switched to **${label}**. Future tool calls will use these settings.`,
+            parts: [{ type: 'text' as const, text: `Switched to **${label}**. Future tool calls will use these settings.` }],
+          },
+        ]);
+      }
+    }
+  }, [mode, network, chainId, messages.length, setMessages]);
 
   useEffect(() => {
     if (scrollRef.current) {

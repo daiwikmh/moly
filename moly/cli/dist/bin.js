@@ -111,7 +111,7 @@ async function runWizard() {
       placeholder: "https://..."
     })
   );
-  const rpc = rpcInput.trim() || null;
+  const rpc = rpcInput?.trim() || null;
   const mode = check(
     await select({
       message: "Mode?",
@@ -141,10 +141,10 @@ async function runWizard() {
     await select({
       message: "AI Provider?  (optional \u2014 used for built-in chat + config snippet)",
       options: [
-        { value: "none", label: "None / Skip" },
+        { value: "openrouter", label: "OpenRouter  (access any model with one key)" },
         { value: "anthropic", label: "Anthropic  (Claude)" },
         { value: "google", label: "Google  (Gemini)" },
-        { value: "openrouter", label: "OpenRouter  (access any model with one key)" }
+        { value: "none", label: "None / Skip" }
       ]
     })
   );
@@ -164,10 +164,10 @@ async function runWizard() {
     await select({
       message: "Which AI client are you using?  (for config snippet)",
       options: [
+        { value: "Integrated Terminal", label: "Moly Environment" },
         { value: "claude-desktop", label: "Claude Desktop" },
         { value: "cursor", label: "Cursor" },
-        { value: "windsurf", label: "Windsurf / Codeium" },
-        { value: "none", label: "Skip" }
+        { value: "windsurf", label: "Windsurf / Codeium" }
       ]
     })
   );
@@ -185,8 +185,13 @@ async function runWizard() {
   if (snippet) {
     note(snippet, "Add to your AI client config");
   }
-  outro(`Starting Moly MCP Server...  ${mode} \xB7 ${network} \xB7 ready`);
-  return cfg;
+  const terminalMode = ai !== null && clientChoice === "Integrated Terminal";
+  if (terminalMode) {
+    outro(`Launching Moly Terminal...  ${mode} \xB7 ${network} \xB7 ready`);
+  } else {
+    outro(`Starting Moly MCP Server...  ${mode} \xB7 ${network} \xB7 ready`);
+  }
+  return { cfg, terminalMode };
 }
 
 // src/bin.ts
@@ -199,8 +204,13 @@ async function main() {
   switch (command) {
     // ── moly setup ────────────────────────────────────────────────────
     case "setup": {
-      await runWizard();
-      await startServer();
+      const { cfg, terminalMode } = await runWizard();
+      if (terminalMode) {
+        const { startChatSession } = await import("./session-RFQTJ6WZ.js");
+        await startChatSession(cfg);
+      } else {
+        await startServer();
+      }
       break;
     }
     // ── moly config ───────────────────────────────────────────────────
@@ -239,8 +249,13 @@ async function main() {
     // ── moly (no args) — wizard if first run, else start server ───────
     default: {
       if (!configExists()) {
-        const cfg = await runWizard();
-        await startServer();
+        const { cfg, terminalMode } = await runWizard();
+        if (terminalMode) {
+          const { startChatSession } = await import("./session-RFQTJ6WZ.js");
+          await startChatSession(cfg);
+        } else {
+          await startServer();
+        }
       } else {
         const cfg = loadConfig();
         process.stderr.write(

@@ -30,7 +30,7 @@ const hoodiChain: Chain = {
   name: 'Hoodi',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://hoodi.drpc.org'] },
+    default: { http: ['https://eth-hoodi.g.alchemy.com/v2/9GGes9QipD09NUv7CJue2'] },
   },
   testnet: true,
 };
@@ -43,7 +43,7 @@ export const CHAINS: Record<string, NetworkChain> = {
     name: 'Hoodi Testnet',
     chainId: 560048,
     chain: hoodiChain,
-    rpcUrl: process.env.HOODI_RPC_URL ?? 'https://hoodi.drpc.org',
+    rpcUrl: process.env.HOODI_RPC_URL ?? 'https://eth-hoodi.g.alchemy.com/v2/9GGes9QipD09NUv7CJue2',
     addrs: {
       steth: '0x3508A952176b3c15387C97BE809eaffB1982176a',
       wsteth: '0x7E99eE3C66636DE415D2d7C880938F2f40f94De4',
@@ -56,7 +56,7 @@ export const CHAINS: Record<string, NetworkChain> = {
     name: 'Ethereum Mainnet',
     chainId: 1,
     chain: mainnet,
-    rpcUrl: process.env.MAINNET_RPC_URL ?? 'https://eth.llamarpc.com',
+    rpcUrl: process.env.MAINNET_RPC_URL ?? 'https://eth-mainnet.g.alchemy.com/v2/t7Oxw5b_OpDL6yQVWN70ZjxO6hTCaZeW',
     writeRpcUrl: process.env.MAINNET_WRITE_RPC_URL ?? 'https://eth-mainnet.g.alchemy.com/v2/t7Oxw5b_OpDL6yQVWN70ZjxO6hTCaZeW',
     addrs: {
       steth: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',

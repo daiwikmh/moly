@@ -14,8 +14,13 @@ async function main() {
   switch (command) {
     // ── moly setup ────────────────────────────────────────────────────
     case 'setup': {
-      await runWizard();
-      await startServer();
+      const { cfg, terminalMode } = await runWizard();
+      if (terminalMode) {
+        const { startChatSession } = await import('./chat/session.js');
+        await startChatSession(cfg);
+      } else {
+        await startServer();
+      }
       break;
     }
 
@@ -58,8 +63,13 @@ async function main() {
     // ── moly (no args) — wizard if first run, else start server ───────
     default: {
       if (!configExists()) {
-        const cfg = await runWizard();
-        await startServer();
+        const { cfg, terminalMode } = await runWizard();
+        if (terminalMode) {
+          const { startChatSession } = await import('./chat/session.js');
+          await startChatSession(cfg);
+        } else {
+          await startServer();
+        }
       } else {
         const cfg = loadConfig();
         process.stderr.write(
