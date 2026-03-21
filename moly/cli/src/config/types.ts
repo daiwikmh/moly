@@ -3,6 +3,7 @@ export type Mode = 'simulation' | 'live';
 export type AiProvider = 'anthropic' | 'google' | 'openrouter' | null;
 export type AiClient = 'claude-desktop' | 'cursor' | 'windsurf' | null;
 export type L2Chain = 'base' | 'arbitrum';
+export type ChainScope = 'ethereum' | 'all';
 
 export interface L2ChainConfig {
   chainId: number;
@@ -32,12 +33,25 @@ export interface AiConfig {
   model: string;
 }
 
+export interface OwsConfig {
+  walletName: string;
+  passphrase: string;
+}
+
+export interface AlertChannelConfig {
+  telegram?: { token: string; chatId: string };
+  webhook?: { url: string };
+}
+
 export interface MolyConfig {
   network: Network;
   mode: Mode;
   rpc: string | null;
   privateKey: string | null;
+  ows: OwsConfig | null;
+  alertChannels: AlertChannelConfig | null;
   ai: AiConfig | null;
+  chainScope: ChainScope;
   setupComplete: boolean;
 }
 

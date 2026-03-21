@@ -6,7 +6,7 @@ import {
   loadConfig,
   redactedConfig,
   saveConfig
-} from "./chunk-PIFEXJ56.js";
+} from "./chunk-ELH5VHWX.js";
 
 // src/setup/wizard.ts
 import {
@@ -15,7 +15,6 @@ import {
   select,
   text,
   password,
-  confirm,
   note,
   cancel,
   isCancel
@@ -73,6 +72,7 @@ var GEMINI_MODELS = [
   { value: "__custom__", label: "Enter custom model ID" }
 ];
 var OPENROUTER_MODELS = [
+  { value: "nvidia/nemotron-3-super-120b-a12b:free", label: "nvidia/nemotron-3-super-120b-a12b:free  (default, free)" },
   { value: "anthropic/claude-sonnet-4-6", label: "anthropic/claude-sonnet-4-6" },
   { value: "anthropic/claude-opus-4-6", label: "anthropic/claude-opus-4-6" },
   { value: "google/gemini-2.0-flash", label: "google/gemini-2.0-flash" },
@@ -95,7 +95,7 @@ async function pickModel(provider) {
   return picked;
 }
 async function runWizard() {
-  intro("  Moly \u2014 Lido MCP Server  \u2B21");
+  intro("  Moly  -  Lido MCP Server");
   const network = check(
     await select({
       message: "Which network?",
@@ -105,6 +105,18 @@ async function runWizard() {
       ]
     })
   );
+  let chainScope = "ethereum";
+  if (network === "mainnet") {
+    chainScope = check(
+      await select({
+        message: "Chain scope?",
+        options: [
+          { value: "ethereum", label: "Ethereum only  (L1 staking, governance, wrapping)" },
+          { value: "all", label: "All chains  (L1 + Base/Arbitrum bridging via LI.FI)" }
+        ]
+      })
+    );
+  }
   const rpcInput = check(
     await text({
       message: "Custom RPC URL?  (optional \u2014 leave blank to use public RPC)",
@@ -122,13 +134,46 @@ async function runWizard() {
     })
   );
   let privateKey = null;
-  const wantsKey = check(
-    await confirm({
-      message: "Add a private key?  (needed for Live mode \u2014 stored locally with chmod 600)",
-      initialValue: mode === "live"
+  let ows = null;
+  const keySource = check(
+    await select({
+      message: "Key source?  (needed for Live mode)",
+      options: [
+        { value: "ows", label: "OWS Wallet  (encrypted via Open Wallet Standard)" },
+        { value: "raw", label: "Raw private key  (stored in ~/.moly/config.json, chmod 600)" },
+        { value: "none", label: "None / Skip" }
+      ]
     })
   );
-  if (wantsKey) {
+  if (keySource === "ows") {
+    let wallets = [];
+    try {
+      const owsSdk = await import("@open-wallet-standard/core");
+      wallets = owsSdk.listWallets();
+    } catch {
+      note("Could not load OWS. Install it first:\ncurl -fsSL https://openwallet.sh/install.sh | bash\nnpm install @open-wallet-standard/core", "OWS not found");
+    }
+    if (wallets.length > 0) {
+      const walletName = check(
+        await select({
+          message: "Which OWS wallet?",
+          options: wallets.map((w) => ({
+            value: w.name,
+            label: `${w.name}  (${w.address.slice(0, 8)}...)`
+          }))
+        })
+      );
+      const passphrase = check(
+        await password({
+          message: "OWS passphrase:",
+          mask: "*"
+        })
+      );
+      ows = { walletName, passphrase: passphrase.trim() };
+    } else if (wallets.length === 0) {
+      note('No OWS wallets found. Create one first:\nows wallet create --name "moly"', "Empty vault");
+    }
+  } else if (keySource === "raw") {
     const pk = check(
       await password({
         message: "Private key (0x...):",
@@ -176,7 +221,9 @@ async function runWizard() {
     mode,
     rpc,
     privateKey,
+    ows,
     ai,
+    chainScope,
     setupComplete: true
   };
   saveConfig(cfg);
@@ -206,7 +253,7 @@ async function main() {
     case "setup": {
       const { cfg, terminalMode } = await runWizard();
       if (terminalMode) {
-        const { startChatSession } = await import("./session-RFQTJ6WZ.js");
+        const { startChatSession } = await import("./session-67NDNZYH.js");
         await startChatSession(cfg);
       } else {
         await startServer();
@@ -235,6 +282,76 @@ async function main() {
       console.log("Config deleted. Run: npx @moly/lido  to set up again.");
       break;
     }
+    // ── moly alert ─────────────────────────────────────────────────────
+    case "alert": {
+      const sub = args[1];
+      const getFlag = (flag) => {
+        const i = args.indexOf(flag);
+        return i !== -1 ? args[i + 1] : void 0;
+      };
+      switch (sub) {
+        case "add": {
+          const condition = args[2];
+          if (!condition) {
+            console.log("Usage: moly alert add <condition> [threshold] [--channel webhook]");
+            break;
+          }
+          const threshold = args[3] && !args[3].startsWith("-") ? parseFloat(args[3]) : void 0;
+          const channel = getFlag("--channel") ?? "telegram";
+          const { setAlert } = await import("./alerts-DBJZDXAO.js");
+          const alert = setAlert({ condition, threshold, channel });
+          console.log("Alert created:", JSON.stringify(alert, null, 2));
+          break;
+        }
+        case "list": {
+          const { listAlerts } = await import("./alerts-DBJZDXAO.js");
+          console.log(JSON.stringify(listAlerts(), null, 2));
+          break;
+        }
+        case "remove": {
+          const id = args[2];
+          if (!id) {
+            console.log("Usage: moly alert remove <id>");
+            break;
+          }
+          const { removeAlertById } = await import("./alerts-DBJZDXAO.js");
+          console.log(JSON.stringify(removeAlertById(id), null, 2));
+          break;
+        }
+        case "channels": {
+          const { configureAlertChannels } = await import("./alerts-DBJZDXAO.js");
+          const result = configureAlertChannels({
+            telegram_token: getFlag("--telegram-token"),
+            telegram_chat_id: getFlag("--telegram-chat"),
+            webhook_url: getFlag("--webhook-url")
+          });
+          console.log("Channels configured:", JSON.stringify(result, null, 2));
+          break;
+        }
+        case "daemon": {
+          if (!configExists()) {
+            console.log("No config. Run: moly setup");
+            process.exit(1);
+          }
+          const { runDaemon } = await import("./daemon-3422I4QB.js");
+          await runDaemon();
+          break;
+        }
+        case "start": {
+          const { spawn } = await import("child_process");
+          const child = spawn(process.argv[0], [process.argv[1], "alert", "daemon"], {
+            detached: true,
+            stdio: "ignore"
+          });
+          child.unref();
+          console.log(`Alert daemon started (PID: ${child.pid})`);
+          break;
+        }
+        default:
+          console.log("Usage: moly alert <add|list|remove|channels|daemon|start>");
+      }
+      break;
+    }
     // ── moly --server (force-start, used in AI client configs) ────────
     case "--server": {
       if (!configExists()) {
@@ -251,7 +368,7 @@ async function main() {
       if (!configExists()) {
         const { cfg, terminalMode } = await runWizard();
         if (terminalMode) {
-          const { startChatSession } = await import("./session-RFQTJ6WZ.js");
+          const { startChatSession } = await import("./session-67NDNZYH.js");
           await startChatSession(cfg);
         } else {
           await startServer();

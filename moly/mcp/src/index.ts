@@ -8,6 +8,7 @@ import { stakeEth } from './tools/stake.js';
 import { requestWithdrawal, claimWithdrawals, getWithdrawalRequests, getWithdrawalStatus } from './tools/unstake.js';
 import { wrapSteth, unwrapWsteth, getConversionRate } from './tools/wrap.js';
 import { getProposals, getProposal, castVote } from './tools/governance.js';
+import { getL2Balance, getBridgeQuote, bridgeToEthereum, getBridgeStatus } from './tools/bridge.js';
 
 const server = new McpServer({
   name: 'lido-mcp',
@@ -164,6 +165,61 @@ server.tool(
   },
   async ({ proposal_id, support, dry_run }) => ({
     content: [{ type: 'text', text: JSON.stringify(await castVote(proposal_id, support, dry_run), null, 2) }],
+  })
+);
+
+// ── L2 Bridging ─────────────────────────────────────────────────
+
+server.tool(
+  'get_l2_balance',
+  'Get ETH and wstETH balances on Base or Arbitrum. Only works in live (mainnet) mode.',
+  {
+    source_chain: z.enum(['base', 'arbitrum']).describe('L2 chain to query'),
+    address: z.string().optional().describe('Address to check (defaults to configured wallet)'),
+  },
+  async ({ source_chain, address }) => ({
+    content: [{ type: 'text', text: JSON.stringify(await getL2Balance(source_chain, address), null, 2) }],
+  })
+);
+
+server.tool(
+  'get_bridge_quote',
+  'Get a quote for bridging ETH or wstETH from an L2 to Ethereum L1 via LI.FI. Mainnet only.',
+  {
+    source_chain: z.enum(['base', 'arbitrum']).describe('L2 chain to bridge from'),
+    token: z.enum(['ETH', 'wstETH']).describe('Token to bridge'),
+    amount: z.string().describe('Amount to bridge (e.g. "0.1")'),
+    to_token: z.enum(['ETH', 'wstETH']).optional().describe('Token to receive on L1 (default ETH)'),
+  },
+  async ({ source_chain, token, amount, to_token }) => ({
+    content: [{ type: 'text', text: JSON.stringify(await getBridgeQuote(source_chain, token, amount, to_token), null, 2) }],
+  })
+);
+
+server.tool(
+  'bridge_to_ethereum',
+  `Bridge ETH or wstETH from Base/Arbitrum to Ethereum L1 via LI.FI. ${modeNote}`,
+  {
+    source_chain: z.enum(['base', 'arbitrum']).describe('L2 chain to bridge from'),
+    token: z.enum(['ETH', 'wstETH']).describe('Token to bridge'),
+    amount: z.string().describe('Amount to bridge'),
+    to_token: z.enum(['ETH', 'wstETH']).optional().describe('Token to receive on L1'),
+    dry_run: z.boolean().optional().describe('Simulate without broadcasting'),
+  },
+  async ({ source_chain, token, amount, to_token, dry_run }) => ({
+    content: [{ type: 'text', text: JSON.stringify(await bridgeToEthereum(source_chain, token, amount, to_token, dry_run), null, 2) }],
+  })
+);
+
+server.tool(
+  'get_bridge_status',
+  'Check the status of an in-progress bridge transaction via LI.FI. Mainnet only.',
+  {
+    tx_hash: z.string().describe('Bridge transaction hash on the L2'),
+    source_chain: z.enum(['base', 'arbitrum']).describe('L2 chain the bridge was sent from'),
+  },
+  async ({ tx_hash, source_chain }) => ({
+    content: [{ type: 'text', text: JSON.stringify(await getBridgeStatus(tx_hash, source_chain), null, 2) }],
   })
 );
 

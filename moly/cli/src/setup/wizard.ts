@@ -10,7 +10,7 @@ import {
   isCancel,
 } from '@clack/prompts';
 import { saveConfig, getConfigPath } from '../config/store.js';
-import type { MolyConfig, Network, Mode, AiProvider, AiClient } from '../config/types.js';
+import type { MolyConfig, Network, Mode, AiProvider, AiClient, ChainScope, OwsConfig } from '../config/types.js';
 
 function bail(value: unknown): never {
   cancel('Setup cancelled.');
@@ -62,6 +62,7 @@ const GEMINI_MODELS = [
 ];
 
 const OPENROUTER_MODELS = [
+  { value: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'nvidia/nemotron-3-super-120b-a12b:free  (default, free)' },
   { value: 'anthropic/claude-sonnet-4-6', label: 'anthropic/claude-sonnet-4-6' },
   { value: 'anthropic/claude-opus-4-6', label: 'anthropic/claude-opus-4-6' },
   { value: 'google/gemini-2.0-flash', label: 'google/gemini-2.0-flash' },
@@ -91,7 +92,7 @@ async function pickModel(provider: AiProvider): Promise<string> {
 }
 
 export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: boolean }> {
-  intro('  Moly — Lido MCP Server  ⬡');
+  intro('  Moly  -  Lido MCP Server');
 
   // ── Network ──────────────────────────────────────────────────────
   const network = check(
@@ -103,6 +104,20 @@ export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: bool
       ],
     })
   ) as Network;
+
+  // ── Chain scope ─────────────────────────────────────────────────────
+  let chainScope: ChainScope = 'ethereum';
+  if (network === 'mainnet') {
+    chainScope = check(
+      await select({
+        message: 'Chain scope?',
+        options: [
+          { value: 'ethereum', label: 'Ethereum only  (L1 staking, governance, wrapping)' },
+          { value: 'all', label: 'All chains  (L1 + Base/Arbitrum bridging via LI.FI)' },
+        ],
+      })
+    ) as ChainScope;
+  }
 
   // ── Custom RPC ────────────────────────────────────────────────────
   const rpcInput = check(
@@ -124,15 +139,53 @@ export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: bool
     })
   ) as Mode;
 
-  // ── Private key ───────────────────────────────────────────────────
+  // ── Key source ──────────────────────────────────────────────────
   let privateKey: string | null = null;
-  const wantsKey = check(
-    await confirm({
-      message: 'Add a private key?  (needed for Live mode — stored locally with chmod 600)',
-      initialValue: mode === 'live',
+  let ows: OwsConfig | null = null;
+
+  const keySource = check(
+    await select({
+      message: 'Key source?  (needed for Live mode)',
+      options: [
+        { value: 'ows', label: 'OWS Wallet  (encrypted via Open Wallet Standard)' },
+        { value: 'raw', label: 'Raw private key  (stored in ~/.moly/config.json, chmod 600)' },
+        { value: 'none', label: 'None / Skip' },
+      ],
     })
-  );
-  if (wantsKey) {
+  ) as string;
+
+  if (keySource === 'ows') {
+    let wallets: Array<{ id: string; name: string; chain: string; address: string }> = [];
+    try {
+      const owsSdk = await import('@open-wallet-standard/core');
+      wallets = owsSdk.listWallets();
+    } catch {
+      note('Could not load OWS. Install it first:\ncurl -fsSL https://openwallet.sh/install.sh | bash\nnpm install @open-wallet-standard/core', 'OWS not found');
+    }
+
+    if (wallets.length > 0) {
+      const walletName = check(
+        await select({
+          message: 'Which OWS wallet?',
+          options: wallets.map((w) => ({
+            value: w.name,
+            label: `${w.name}  (${w.address.slice(0, 8)}...)`,
+          })),
+        })
+      ) as string;
+
+      const passphrase = check(
+        await password({
+          message: 'OWS passphrase:',
+          mask: '*',
+        })
+      ) as string;
+
+      ows = { walletName, passphrase: passphrase.trim() };
+    } else if (wallets.length === 0) {
+      note('No OWS wallets found. Create one first:\nows wallet create --name "moly"', 'Empty vault');
+    }
+  } else if (keySource === 'raw') {
     const pk = check(
       await password({
         message: 'Private key (0x...):',
@@ -191,7 +244,9 @@ export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: bool
     mode,
     rpc,
     privateKey,
+    ows,
     ai,
+    chainScope,
     setupComplete: true,
   };
 

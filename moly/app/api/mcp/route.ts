@@ -4,6 +4,7 @@ import { z } from "zod";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Socket } from "node:net";
 import * as lido from "@/lib/lido";
+import * as bridge from "@/lib/bridge";
 import type { Mode, Network } from "@/lib/lido-config";
 
 function createServer(mode: Mode, network: Network, chainId: string) {
@@ -157,6 +158,60 @@ function createServer(mode: Mode, network: Network, chainId: string) {
     })
   );
 
+  // ─── L2 Bridge Tools ─────────────────────────────────────────
+
+  server.tool(
+    "get_l2_balance",
+    "Get ETH and wstETH balances on Base or Arbitrum (mainnet only)",
+    {
+      source_chain: z.enum(["base", "arbitrum"]).describe("L2 chain to query"),
+      address: z.string().describe("Ethereum address (0x...)"),
+    },
+    async ({ source_chain, address }) => ({
+      content: [{ type: "text" as const, text: JSON.stringify(await bridge.getL2Balance(ctx, source_chain, address), null, 2) }],
+    })
+  );
+
+  server.tool(
+    "get_bridge_quote",
+    "Get a quote for bridging ETH or wstETH from L2 to Ethereum L1 via LI.FI (mainnet only)",
+    {
+      source_chain: z.enum(["base", "arbitrum"]).describe("L2 chain"),
+      token: z.enum(["ETH", "wstETH"]).describe("Token to bridge"),
+      amount: z.string().describe("Amount to bridge"),
+      to_token: z.enum(["ETH", "wstETH"]).optional().describe("Token to receive on L1"),
+    },
+    async ({ source_chain, token, amount, to_token }) => ({
+      content: [{ type: "text" as const, text: JSON.stringify(await bridge.getBridgeQuote(ctx, source_chain, token, amount, to_token), null, 2) }],
+    })
+  );
+
+  server.tool(
+    "bridge_to_ethereum",
+    "Bridge ETH or wstETH from L2 to Ethereum L1 (dry run in dashboard)",
+    {
+      source_chain: z.enum(["base", "arbitrum"]).describe("L2 chain"),
+      token: z.enum(["ETH", "wstETH"]).describe("Token to bridge"),
+      amount: z.string().describe("Amount to bridge"),
+      to_token: z.enum(["ETH", "wstETH"]).optional().describe("Token to receive on L1"),
+    },
+    async ({ source_chain, token, amount, to_token }) => ({
+      content: [{ type: "text" as const, text: JSON.stringify(await bridge.bridgeToEthereum(ctx, source_chain, token, amount, to_token), null, 2) }],
+    })
+  );
+
+  server.tool(
+    "get_bridge_status",
+    "Check the status of a bridge transaction (mainnet only)",
+    {
+      tx_hash: z.string().describe("Bridge tx hash on the L2"),
+      source_chain: z.enum(["base", "arbitrum"]).describe("L2 chain the bridge was sent from"),
+    },
+    async ({ tx_hash, source_chain }) => ({
+      content: [{ type: "text" as const, text: JSON.stringify(await bridge.getBridgeStatus(ctx, tx_hash, source_chain), null, 2) }],
+    })
+  );
+
   return server;
 }
 
@@ -270,7 +325,7 @@ export async function GET() {
     version: "1.0.0",
     description:
       "Lido staking protocol MCP server — 13 tools for balances, staking, wrapping, withdrawals, and governance. Defaults to simulation mode on Hoodi testnet.",
-    tools: 13,
+    tools: 17,
     transport: "streamable-http",
     quickstart: {
       config: {

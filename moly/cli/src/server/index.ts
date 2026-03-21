@@ -8,11 +8,12 @@ import { requestWithdrawal, claimWithdrawals, getWithdrawalRequests, getWithdraw
 import { wrapSteth, unwrapWsteth, getConversionRate } from '../tools/wrap.js';
 import { getProposals, getProposal, castVote } from '../tools/governance.js';
 import { getSettings, updateSettings } from '../tools/settings.js';
+import { setAlert, listAlerts, removeAlertById, configureAlertChannels } from '../tools/alerts.js';
 
 const cfg = loadConfig();
 const modeNote = cfg.mode === 'simulation'
-  ? '🟡 SIMULATION — dry_run true by default, no real transactions'
-  : '🔴 LIVE — real transactions on ' + (cfg.network === 'mainnet' ? 'Ethereum Mainnet' : 'Hoodi Testnet');
+  ? 'SIMULATION — dry_run true by default, no real transactions'
+  : 'LIVE — real transactions on ' + (cfg.network === 'mainnet' ? 'Ethereum Mainnet' : 'Hoodi Testnet');
 
 const server = new McpServer({ name: '@moly/lido', version: '1.0.0' });
 
@@ -187,6 +188,52 @@ server.tool(
   },
   async ({ network, mode, rpc, model }) => ({
     content: [{ type: 'text', text: JSON.stringify(updateSettings({ network, mode, rpc, model }), null, 2) }],
+  })
+);
+
+// ── Alerts ──────────────────────────────────────────────────────────────────
+
+server.tool(
+  'set_alert',
+  'Create a new alert. Conditions: balance_below, balance_above, reward_rate_below, reward_rate_above, withdrawal_ready, proposal_new, conversion_rate_above, conversion_rate_below. Default channel: telegram.',
+  {
+    condition: z.string().describe('Alert condition type'),
+    threshold: z.number().optional().describe('Numeric threshold (required for _above/_below conditions)'),
+    channel: z.enum(['telegram', 'webhook']).optional().default('telegram').describe('Notification channel'),
+  },
+  async ({ condition, threshold, channel }) => ({
+    content: [{ type: 'text', text: JSON.stringify(setAlert({ condition, threshold, channel }), null, 2) }],
+  })
+);
+
+server.tool(
+  'list_alerts',
+  'List all configured alerts.',
+  {},
+  async () => ({
+    content: [{ type: 'text', text: JSON.stringify(listAlerts(), null, 2) }],
+  })
+);
+
+server.tool(
+  'remove_alert',
+  'Remove an alert by ID.',
+  { id: z.string().describe('Alert ID to remove') },
+  async ({ id }) => ({
+    content: [{ type: 'text', text: JSON.stringify(removeAlertById(id), null, 2) }],
+  })
+);
+
+server.tool(
+  'configure_alert_channels',
+  'Configure Telegram and/or webhook notification channels for alerts.',
+  {
+    telegram_token: z.string().optional().describe('Telegram bot token'),
+    telegram_chat_id: z.string().optional().describe('Telegram chat ID'),
+    webhook_url: z.string().optional().describe('Webhook URL for HTTP POST notifications'),
+  },
+  async ({ telegram_token, telegram_chat_id, webhook_url }) => ({
+    content: [{ type: 'text', text: JSON.stringify(configureAlertChannels({ telegram_token, telegram_chat_id, webhook_url }), null, 2) }],
   })
 );
 

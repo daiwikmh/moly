@@ -3,6 +3,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { type Mode, type Network } from '@/lib/lido-config';
 import * as lido from '@/lib/lido';
+import * as bridge from '@/lib/bridge';
 
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -22,6 +23,9 @@ Key facts:
 - Testnet uses Hoodi (chain ID 560048), mainnet uses Ethereum (chain ID 1)
 - Mode "simulation" means all write operations are dry-run (no real tx), on any chain
 - Mode "live" means the user intends real transactions, but the dashboard still can't broadcast — it shows estimates. Real execution happens via the MCP server with a private key.
+- L2 bridging is supported on mainnet only: Base (8453) and Arbitrum (42161) via LI.FI
+- If the user wants to stake ETH from Base or Arbitrum, first check their L2 balance with get_l2_balance, then bridge to Ethereum with bridge_to_ethereum, then after bridging completes use stake_eth
+- Bridge duration is typically 1-20 minutes. Tell the user to check back with get_bridge_status
 
 When showing results, be concise. Format numbers to 4 decimal places for balances.
 Always mention which network and chain you're operating on.`;
@@ -147,6 +151,42 @@ export async function POST(req: Request) {
           support: z.boolean().describe('true for YEA, false for NAY'),
         }),
         execute: async ({ proposal_id, support }: { proposal_id: number; support: boolean }) => safeTool(() => lido.castVote(ctx, proposal_id, support)),
+      },
+      get_l2_balance: {
+        description: 'Get ETH and wstETH balances on Base or Arbitrum (mainnet only)',
+        inputSchema: z.object({
+          source_chain: z.enum(['base', 'arbitrum']).describe('L2 chain to query'),
+          address: z.string().describe('Ethereum address (0x...)'),
+        }),
+        execute: async ({ source_chain, address }: { source_chain: string; address: string }) => safeTool(() => bridge.getL2Balance(ctx, source_chain, address)),
+      },
+      get_bridge_quote: {
+        description: 'Get a quote for bridging ETH or wstETH from L2 to Ethereum L1 (mainnet only)',
+        inputSchema: z.object({
+          source_chain: z.enum(['base', 'arbitrum']).describe('L2 chain'),
+          token: z.enum(['ETH', 'wstETH']).describe('Token to bridge'),
+          amount: z.string().describe('Amount to bridge'),
+          to_token: z.enum(['ETH', 'wstETH']).optional().describe('Token to receive on L1'),
+        }),
+        execute: async ({ source_chain, token, amount, to_token }: { source_chain: string; token: string; amount: string; to_token?: string }) => safeTool(() => bridge.getBridgeQuote(ctx, source_chain, token, amount, to_token)),
+      },
+      bridge_to_ethereum: {
+        description: 'Bridge ETH or wstETH from L2 to Ethereum L1 (dry run in dashboard)',
+        inputSchema: z.object({
+          source_chain: z.enum(['base', 'arbitrum']).describe('L2 chain'),
+          token: z.enum(['ETH', 'wstETH']).describe('Token to bridge'),
+          amount: z.string().describe('Amount to bridge'),
+          to_token: z.enum(['ETH', 'wstETH']).optional().describe('Token to receive on L1'),
+        }),
+        execute: async ({ source_chain, token, amount, to_token }: { source_chain: string; token: string; amount: string; to_token?: string }) => safeTool(() => bridge.bridgeToEthereum(ctx, source_chain, token, amount, to_token)),
+      },
+      get_bridge_status: {
+        description: 'Check status of a bridge transaction (mainnet only)',
+        inputSchema: z.object({
+          tx_hash: z.string().describe('Bridge tx hash on the L2'),
+          source_chain: z.enum(['base', 'arbitrum']).describe('L2 chain the bridge was sent from'),
+        }),
+        execute: async ({ tx_hash, source_chain }: { tx_hash: string; source_chain: string }) => safeTool(() => bridge.getBridgeStatus(ctx, tx_hash, source_chain)),
       },
     },
   });

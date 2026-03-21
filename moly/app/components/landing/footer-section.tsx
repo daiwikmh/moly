@@ -8,6 +8,7 @@ const footerLinks = {
     { name: "How It Works", href: "#how-it-works" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "MCP Server", href: "/docs/mcp-server" },
+    { name: "Open Wallet Standard", href: "https://openwallet.sh" },
   ],
   Developers: [
     { name: "Documentation", href: "/docs" },

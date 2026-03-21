@@ -4,7 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { LidoSDK } from '@lidofinance/lido-ethereum-sdk';
 import { loadConfig, saveConfig } from '../config/store.js';
 import { CHAIN_CONFIG, L2_CHAINS } from '../config/types.js';
-import type { MolyConfig, Network, Mode, L2Chain } from '../config/types.js';
+import type { MolyConfig, Network, Mode, L2Chain, ChainScope } from '../config/types.js';
 
 // Hoodi is not in viem/chains yet — define it manually
 const hoodi = defineChain({
@@ -47,12 +47,34 @@ function buildRuntime(): Runtime {
   });
 
   let _wallet: ReturnType<typeof createWalletClient> | null = null;
+  let _resolvedAccount: ReturnType<typeof privateKeyToAccount> | null = null;
+
+  function resolveAccount() {
+    if (_resolvedAccount) return _resolvedAccount;
+
+    if (config.ows) {
+      let exportWallet: Function;
+      try {
+        exportWallet = require('@open-wallet-standard/core').exportWallet;
+      } catch {
+        throw new Error('OWS SDK not installed. Run: npm install @open-wallet-standard/core');
+      }
+      const exported = exportWallet(config.ows.walletName, config.ows.passphrase);
+      const keyHex = exported.secp256k1 ?? exported;
+      const pk = (keyHex.startsWith('0x') ? keyHex : '0x' + keyHex) as `0x${string}`;
+      _resolvedAccount = privateKeyToAccount(pk);
+      return _resolvedAccount;
+    }
+
+    const pk = config.privateKey;
+    if (!pk) throw new Error('No key configured. Run: moly setup');
+    _resolvedAccount = privateKeyToAccount(pk as `0x${string}`);
+    return _resolvedAccount;
+  }
 
   function getWallet() {
     if (_wallet) return _wallet;
-    const pk = config.privateKey;
-    if (!pk) throw new Error('No private key configured. Run: moly setup');
-    const account = privateKeyToAccount(pk as `0x${string}`);
+    const account = resolveAccount();
     _wallet = createWalletClient({
       account,
       chain: viemChain,
@@ -62,9 +84,7 @@ function buildRuntime(): Runtime {
   }
 
   function getAddress(): `0x${string}` {
-    const pk = config.privateKey;
-    if (!pk) throw new Error('No private key configured. Run: moly setup');
-    return privateKeyToAccount(pk as `0x${string}`).address;
+    return resolveAccount().address;
   }
 
   const _l2Clients: Partial<Record<L2Chain, ReturnType<typeof createPublicClient>>> = {};
@@ -80,9 +100,7 @@ function buildRuntime(): Runtime {
 
   function getL2Wallet(chain: L2Chain) {
     if (_l2Wallets[chain]) return _l2Wallets[chain]!;
-    const pk = config.privateKey;
-    if (!pk) throw new Error('No private key configured. Run: moly setup');
-    const account = privateKeyToAccount(pk as `0x${string}`);
+    const account = resolveAccount();
     const cfg = L2_CHAINS[chain];
     const wallet = createWalletClient({ account, chain: L2_VIEM_CHAINS[chain], transport: http(cfg.defaultRpc) });
     _l2Wallets[chain] = wallet;
@@ -113,6 +131,7 @@ export function applySettingsUpdate(patch: {
   mode?: Mode;
   rpc?: string | null;
   model?: string;
+  chain_scope?: ChainScope;
 }): MolyConfig {
   const current = loadConfig();
 
@@ -120,6 +139,7 @@ export function applySettingsUpdate(patch: {
   if (patch.mode !== undefined) current.mode = patch.mode;
   if (patch.rpc !== undefined) current.rpc = patch.rpc;
   if (patch.model !== undefined && current.ai) current.ai.model = patch.model;
+  if (patch.chain_scope !== undefined) current.chainScope = patch.chain_scope;
 
   saveConfig(current);
   _runtime = null; // force rebuild on next getRuntime()

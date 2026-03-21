@@ -70,6 +70,24 @@ export const CHAINS: Record<string, NetworkChain> = {
 export const TESTNET_CHAINS = ['hoodi'] as const;
 export const MAINNET_CHAINS = ['ethereum'] as const;
 
+// L2 chains for bridging (mainnet only)
+export const L2_CHAINS: Record<string, { id: string; name: string; chainId: number; wstETH: `0x${string}`; rpcUrl: string }> = {
+  base: {
+    id: 'base',
+    name: 'Base',
+    chainId: 8453,
+    wstETH: '0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452',
+    rpcUrl: 'https://mainnet.base.org',
+  },
+  arbitrum: {
+    id: 'arbitrum',
+    name: 'Arbitrum One',
+    chainId: 42161,
+    wstETH: '0x5979D7b546E38E9Ab8049dCFAc0B5D35A8De3f6e',
+    rpcUrl: 'https://arb1.arbitrum.io/rpc',
+  },
+};
+
 // ─── Config Helpers ──────────────────────────────────────────
 
 export function getChain(network: Network, chainId?: string): NetworkChain {

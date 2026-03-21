@@ -22,7 +22,7 @@ ${CY}${B}  ██╔████╔██║██║   ██║██║   ╚
 ${CY}${B}  ██║╚██╔╝██║██║   ██║██║    ╚██╔╝  ${R}
 ${CY}${B}  ██║ ╚═╝ ██║╚██████╔╝███████╗██║   ${R}
 ${CY}${B}  ╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝   ${R}
-${D}              powered by Lido ⬡${R}
+${D}              powered by Lido${R}
 `;
 
 function ln(text = '') { process.stdout.write(text + '\n'); }
@@ -61,7 +61,7 @@ function printBanner(cfg: MolyConfig) {
 
 const WRITE_TOOLS = new Set([
   'stake_eth', 'request_withdrawal', 'claim_withdrawals',
-  'wrap_steth', 'unwrap_wsteth', 'cast_vote',
+  'wrap_steth', 'unwrap_wsteth', 'cast_vote', 'bridge_to_ethereum',
 ]);
 
 export async function startChatSession(cfg: MolyConfig) {
@@ -78,7 +78,10 @@ export async function startChatSession(cfg: MolyConfig) {
       content:
         `You are Moly, a terminal assistant for Lido Finance on ${cfg.network}. ` +
         `Mode: ${cfg.mode} (${cfg.mode === 'simulation' ? 'dry-run, nothing broadcast' : 'LIVE - real on-chain transactions'}). ` +
-        `You can only do what your tools support: staking ETH, withdrawals, wrap/unwrap stETH/wstETH, balances, rewards, and Lido DAO governance. ` +
+        `Chain scope: ${cfg.chainScope ?? 'ethereum'}. ` +
+        `You can only do what your tools support: staking ETH, withdrawals, wrap/unwrap stETH/wstETH, balances, rewards, Lido DAO governance` +
+        `${cfg.chainScope === 'all' ? ', and L2 bridging from Base/Arbitrum to Ethereum via LI.FI' : ''}. ` +
+        `${cfg.chainScope === 'all' ? 'If the user wants to stake ETH from Base or Arbitrum, first check their L2 balance with get_l2_balance, then bridge to Ethereum with bridge_to_ethereum, then after bridging completes use stake_eth. Bridge takes 1-20 min, tell user to check with get_bridge_status. ' : ''}` +
         `If asked about anything outside those tools (e.g. Lido Vaults, validators, node operators, DeFi integrations), say clearly and briefly that it is not supported. ` +
         `IMPORTANT: This is a terminal. Never use markdown. No **bold**, no bullet points, no headers, no backticks. Plain text only. ` +
         `Be concise. For live transactions always confirm first.`,

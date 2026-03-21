@@ -41,7 +41,7 @@ const features = [
   { title: "15 MCP tools", description: "Full Lido protocol coverage." },
   { title: "Simulation mode", description: "Test every action before broadcast." },
   { title: "Dual network", description: "Hoodi testnet and Ethereum mainnet." },
-  { title: "Zero auth", description: "No API keys for read tools." },
+  { title: "OWS vault", description: "Encrypted keys via Open Wallet Standard." },
 ];
 
 export function DevelopersSection() {

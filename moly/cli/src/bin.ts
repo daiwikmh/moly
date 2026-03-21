@@ -48,6 +48,69 @@ async function main() {
       break;
     }
 
+    // ── moly alert ─────────────────────────────────────────────────────
+    case 'alert': {
+      const sub = args[1];
+      const getFlag = (flag: string) => {
+        const i = args.indexOf(flag);
+        return i !== -1 ? args[i + 1] : undefined;
+      };
+
+      switch (sub) {
+        case 'add': {
+          const condition = args[2];
+          if (!condition) { console.log('Usage: moly alert add <condition> [threshold] [--channel webhook]'); break; }
+          const threshold = args[3] && !args[3].startsWith('-') ? parseFloat(args[3]) : undefined;
+          const channel = getFlag('--channel') ?? 'telegram';
+          const { setAlert } = await import('./tools/alerts.js');
+          const alert = setAlert({ condition, threshold, channel });
+          console.log('Alert created:', JSON.stringify(alert, null, 2));
+          break;
+        }
+        case 'list': {
+          const { listAlerts } = await import('./tools/alerts.js');
+          console.log(JSON.stringify(listAlerts(), null, 2));
+          break;
+        }
+        case 'remove': {
+          const id = args[2];
+          if (!id) { console.log('Usage: moly alert remove <id>'); break; }
+          const { removeAlertById } = await import('./tools/alerts.js');
+          console.log(JSON.stringify(removeAlertById(id), null, 2));
+          break;
+        }
+        case 'channels': {
+          const { configureAlertChannels } = await import('./tools/alerts.js');
+          const result = configureAlertChannels({
+            telegram_token: getFlag('--telegram-token'),
+            telegram_chat_id: getFlag('--telegram-chat'),
+            webhook_url: getFlag('--webhook-url'),
+          });
+          console.log('Channels configured:', JSON.stringify(result, null, 2));
+          break;
+        }
+        case 'daemon': {
+          if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+          const { runDaemon } = await import('./alerts/daemon.js');
+          await runDaemon();
+          break;
+        }
+        case 'start': {
+          const { spawn } = await import('child_process');
+          const child = spawn(process.argv[0], [process.argv[1], 'alert', 'daemon'], {
+            detached: true,
+            stdio: 'ignore',
+          });
+          child.unref();
+          console.log(`Alert daemon started (PID: ${child.pid})`);
+          break;
+        }
+        default:
+          console.log('Usage: moly alert <add|list|remove|channels|daemon|start>');
+      }
+      break;
+    }
+
     // ── moly --server (force-start, used in AI client configs) ────────
     case '--server': {
       if (!configExists()) {

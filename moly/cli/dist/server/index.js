@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 import {
+  getSettings,
+  stakeEth,
+  updateSettings
+} from "../chunk-MN6L5A4Y.js";
+import {
+  configureAlertChannels,
+  listAlerts,
+  removeAlertById,
+  setAlert
+} from "../chunk-RICVAPHZ.js";
+import {
   castVote,
   claimWithdrawals,
   getBalance,
@@ -7,25 +18,23 @@ import {
   getProposal,
   getProposals,
   getRewards,
-  getSettings,
   getWithdrawalRequests,
   getWithdrawalStatus,
   requestWithdrawal,
-  stakeEth,
   unwrapWsteth,
-  updateSettings,
   wrapSteth
-} from "../chunk-RE3UIDLV.js";
+} from "../chunk-OAISRMIP.js";
+import "../chunk-CKNE4DRV.js";
 import {
   loadConfig
-} from "../chunk-PIFEXJ56.js";
+} from "../chunk-ELH5VHWX.js";
 
 // src/server/index.ts
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 var cfg = loadConfig();
-var modeNote = cfg.mode === "simulation" ? "\u{1F7E1} SIMULATION \u2014 dry_run true by default, no real transactions" : "\u{1F534} LIVE \u2014 real transactions on " + (cfg.network === "mainnet" ? "Ethereum Mainnet" : "Hoodi Testnet");
+var modeNote = cfg.mode === "simulation" ? "SIMULATION \u2014 dry_run true by default, no real transactions" : "LIVE \u2014 real transactions on " + (cfg.network === "mainnet" ? "Ethereum Mainnet" : "Hoodi Testnet");
 var server = new McpServer({ name: "@moly/lido", version: "1.0.0" });
 server.tool(
   "get_balance",
@@ -172,6 +181,46 @@ server.tool(
   },
   async ({ network, mode, rpc, model }) => ({
     content: [{ type: "text", text: JSON.stringify(updateSettings({ network, mode, rpc, model }), null, 2) }]
+  })
+);
+server.tool(
+  "set_alert",
+  "Create a new alert. Conditions: balance_below, balance_above, reward_rate_below, reward_rate_above, withdrawal_ready, proposal_new, conversion_rate_above, conversion_rate_below. Default channel: telegram.",
+  {
+    condition: z.string().describe("Alert condition type"),
+    threshold: z.number().optional().describe("Numeric threshold (required for _above/_below conditions)"),
+    channel: z.enum(["telegram", "webhook"]).optional().default("telegram").describe("Notification channel")
+  },
+  async ({ condition, threshold, channel }) => ({
+    content: [{ type: "text", text: JSON.stringify(setAlert({ condition, threshold, channel }), null, 2) }]
+  })
+);
+server.tool(
+  "list_alerts",
+  "List all configured alerts.",
+  {},
+  async () => ({
+    content: [{ type: "text", text: JSON.stringify(listAlerts(), null, 2) }]
+  })
+);
+server.tool(
+  "remove_alert",
+  "Remove an alert by ID.",
+  { id: z.string().describe("Alert ID to remove") },
+  async ({ id }) => ({
+    content: [{ type: "text", text: JSON.stringify(removeAlertById(id), null, 2) }]
+  })
+);
+server.tool(
+  "configure_alert_channels",
+  "Configure Telegram and/or webhook notification channels for alerts.",
+  {
+    telegram_token: z.string().optional().describe("Telegram bot token"),
+    telegram_chat_id: z.string().optional().describe("Telegram chat ID"),
+    webhook_url: z.string().optional().describe("Webhook URL for HTTP POST notifications")
+  },
+  async ({ telegram_token, telegram_chat_id, webhook_url }) => ({
+    content: [{ type: "text", text: JSON.stringify(configureAlertChannels({ telegram_token, telegram_chat_id, webhook_url }), null, 2) }]
   })
 );
 var transport = new StdioServerTransport();

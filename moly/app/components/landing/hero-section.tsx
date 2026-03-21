@@ -130,7 +130,7 @@ export function HeroSection() {
                 { value: "9.3M ETH", label: "staked through Lido", company: "LIDO" },
                 { value: "4.6%", label: "average staking APR", company: "ETHEREUM" },
                 { value: "15 tools", label: "in the MCP server", company: "MOLY" },
-                { value: "2 networks", label: "Mainnet & Hoodi testnet", company: "NETWORKS" },
+                { value: "OWS", label: "encrypted key vault", company: "SECURITY" },
               ].map((stat) => (
                 <div key={`${stat.company}-${i}`} className="flex items-baseline gap-4">
                   <span className="text-4xl lg:text-5xl font-display">
