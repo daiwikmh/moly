@@ -43,13 +43,24 @@ Mode and Network are fully independent — you can simulate on mainnet or go liv
 - Config changes mid-conversation inject a system message so the AI knows the context shifted
 - Both toggles persist across chat messages
 
-### Agentic Chat Interface
+### Moly Terminal
 
-- **Streaming AI responses** with tool invocations rendered inline
-- **Structured tool result cards** — balances show as 3-column grids, proposals render with status badges and vote bars, simulations show gas estimates with explanatory notes
-- **4 suggested prompts** on empty state: check Vitalik's balance, simulate staking, show governance proposals, check conversion rate
-- **5-step tool chaining** — the AI can call up to 5 tools sequentially to answer complex queries
-- **12-second timeout** per tool with safe error wrapping — a failing tool never crashes the stream
+Built-in interactive chat REPL for staking directly from your terminal:
+
+- **AI-powered** — connects to OpenRouter, Claude, or Gemini for natural language interaction
+- **All tools available** — stake, unstake, wrap, govern, bridge, monitor, bounds without leaving the terminal
+- **Activity ledger** — write operations auto-logged to SQLite (`~/.moly/ledger.db`) with full query and export
+- **Skill context** — `lido.skill.md` loaded into the system prompt so the AI understands Lido mechanics
+- **No markdown** — clean plaintext output designed for terminal readability
+
+### Autonomous Position Management
+
+The agent autonomously monitors and manages a staking position within human-set bounds:
+
+- **Policy bounds** — configurable limits: max stake per tx, daily stake cap, min ETH reserve for gas, governance auto-vote. Stored at `~/.moly/bounds.json`. All write operations are gated by bounds enforcement before execution.
+- **Position monitor** — background daemon polls every 30s for balance thresholds, reward rate changes, reward deltas, withdrawal readiness, new proposals, and governance vote expiry. Sends alerts via Telegram or webhook.
+- **Cross-chain aggregation** — unified ETH-equivalent position across Ethereum mainnet + Base + Arbitrum in a single tool call
+- **Activity ledger** — SQLite audit trail of every tool execution with queryable filters (by tool, date range) and CSV/JSON export
 
 ### OWS Integration
 
@@ -97,7 +108,26 @@ The wizard asks for:
 | `moly setup` | Re-run the full setup wizard |
 | `moly config` | Print current config (keys redacted) |
 | `moly reset` | Delete config and start fresh |
+| `moly position [address]` | Cross-chain position summary (ETH + Base + Arbitrum) |
+| `moly monitor start\|status\|stop` | Manage the alert monitoring daemon |
+| `moly bounds [show\|set\|reset]` | View or update policy bounds |
+| `moly ledger list\|stats\|export` | Query or export the activity ledger |
+| `moly alert add\|list\|remove` | Manage alert rules |
 | `npx @moly-mcp/lido --server` | Force-start MCP server (use in AI client configs) |
+
+#### Bounds flags
+
+```bash
+moly bounds set --max-stake-per-tx 1.0 --max-daily-stake 10 --min-eth-reserve 0.5 --governance-auto-vote false
+```
+
+#### Ledger flags
+
+```bash
+moly ledger list --tool stake_eth --since 2025-01-01 --limit 20
+moly ledger stats --since 2025-01-01
+moly ledger export --format csv
+```
 
 ### AI Client Integration
 
@@ -160,9 +190,9 @@ Open http://localhost:3000
 
 ---
 
-## Tools (15 total)
+## Tools (22 total)
 
-All three packages expose the same Lido toolset. The CLI package adds 2 settings tools.
+All packages expose the same Lido toolset. The CLI adds settings, bounds, ledger, position, and alert tools.
 
 ### Read Tools
 
@@ -175,7 +205,11 @@ All three packages expose the same Lido toolset. The CLI package adds 2 settings
 | `get_withdrawal_status` | Check finalization status per request ID | [`unstake.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/unstake.ts) |
 | `get_proposals` | List recent Lido DAO governance proposals | [`governance.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/governance.ts) |
 | `get_proposal` | Detailed info on a specific proposal | [`governance.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/governance.ts) |
-| `get_settings` | Current mode, network, RPC (CLI only — keys redacted) | [`settings.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/settings.ts) |
+| `get_total_position` | Cross-chain position: ETH + stETH + wstETH across mainnet, Base, Arbitrum | [`position.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/position.ts) |
+| `get_bounds` | Current policy bounds (max stake, daily limit, gas reserve) | [`bounds/store.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/bounds/store.ts) |
+| `get_trade_history` | Query the activity ledger with filters (tool, date, limit) | [`ledger/store.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/ledger/store.ts) |
+| `get_staking_summary` | Aggregate stats: total operations, staked ETH, errors | [`ledger/store.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/ledger/store.ts) |
+| `get_settings` | Current mode, network, RPC (keys redacted) | [`settings.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/settings.ts) |
 
 ### Write Tools (all support `dry_run`)
 
@@ -187,9 +221,19 @@ All three packages expose the same Lido toolset. The CLI package adds 2 settings
 | `wrap_steth` | Wrap stETH into wstETH (non-rebasing) | [`wrap.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/wrap.ts) |
 | `unwrap_wsteth` | Unwrap wstETH back to rebasing stETH | [`wrap.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/wrap.ts) |
 | `cast_vote` | Vote YEA/NAY on Lido DAO proposal (needs LDO) | [`governance.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/governance.ts) |
-| `update_settings` | Change mode/network/RPC mid-conversation (CLI only) | [`settings.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/settings.ts) |
+| `set_bounds` | Update policy bounds that gate write operations | [`bounds/store.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/bounds/store.ts) |
+| `update_settings` | Change mode/network/RPC mid-conversation | [`settings.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/settings.ts) |
 
-In simulation mode, `dry_run` defaults to `true` — nothing is ever broadcast unless you explicitly switch to live.
+### Alert Tools
+
+| Tool | Description | Source |
+|---|---|---|
+| `set_alert` | Create alert (balance, reward rate, withdrawal, proposal, conversion rate, reward delta, governance expiry) | [`alerts.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/alerts.ts) |
+| `list_alerts` | List all configured alerts | [`alerts.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/alerts.ts) |
+| `remove_alert` | Remove an alert by ID | [`alerts.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/alerts.ts) |
+| `configure_alert_channels` | Set Telegram bot token/chat ID or webhook URL | [`alerts.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/alerts.ts) |
+
+In simulation mode, `dry_run` defaults to `true` — nothing is ever broadcast unless you explicitly switch to live. All write tools are gated by policy bounds before execution.
 
 ---
 
@@ -208,14 +252,18 @@ In simulation mode, `dry_run` defaults to `true` — nothing is ever broadcast u
 
 ```mermaid
 flowchart TD
-    A[AI Agent\nOpenRouter / Claude / Cursor] -->|MCP / stdio| B[Moly MCP Server\n15 Lido tools]
-    B --> C{resolveAccount}
+    A[AI Agent\nOpenRouter / Claude / Cursor] -->|MCP / stdio| B[Moly MCP Server\n22 Lido tools]
+    B --> BA{checkBounds}
+    BA -->|blocked| BB[Reject with reason]
+    BA -->|allowed| C{resolveAccount}
     C -->|encrypted| D[OWS Vault\n~/.ows/ AES-256-GCM]
     C -->|plaintext| E[Raw Key\n~/.moly/ chmod 600]
     D --> F[viem Account]
     E --> F
     F --> G[Lido SDK]
     G -->|stake / unstake / wrap / govern| H[Ethereum RPC\nMainnet / Hoodi]
+    G --> I[Activity Ledger\n~/.moly/ledger.db]
+    J[Monitor Daemon\n30s polling] -->|alerts| K[Telegram / Webhook]
 ```
 
 ---
@@ -227,7 +275,18 @@ flowchart TD
 - **API keys** stored alongside config. Never logged, never printed.
 - **Simulation mode** (default) is always dry-run — nothing broadcast unless you explicitly set it to false and switch to live.
 - **`update_settings`** MCP tool intentionally cannot change private keys or API keys — only via `moly setup`.
+- **Policy bounds** — write operations are gated by human-set limits before any transaction is broadcast.
+- **Activity ledger** — every tool call is logged to `~/.moly/ledger.db` (SQLite, WAL mode) for auditability.
 - **Dashboard** never holds private keys — all write operations from the web UI are simulations only.
+
+### Data files (`~/.moly/`)
+
+| File | Purpose |
+|---|---|
+| `config.json` | Network, mode, RPC, wallet, AI provider (chmod 600) |
+| `bounds.json` | Policy bounds: max stake, daily cap, gas reserve, governance |
+| `alerts.json` | Alert rules, daemon state, channel config |
+| `ledger.db` | SQLite activity ledger (all tool executions) |
 
 ---
 
@@ -235,7 +294,7 @@ flowchart TD
 
 | Component | Stack |
 |---|---|
-| CLI (`@moly-mcp/lido`) | TypeScript, tsup, @clack/prompts, @modelcontextprotocol/sdk, @open-wallet-standard/core (optional) |
+| CLI (`@moly-mcp/lido`) | TypeScript, tsup, @clack/prompts, @modelcontextprotocol/sdk, better-sqlite3, @open-wallet-standard/core (optional) |
 | MCP Server | Bun, TypeScript, @lidofinance/lido-ethereum-sdk, viem |
 | Dashboard | Next.js 16, Tailwind CSS, Vercel AI SDK v6, OpenRouter |
 | On-chain | Lido stETH/wstETH, Aragon Voting, Ethereum Mainnet + Hoodi Testnet |
