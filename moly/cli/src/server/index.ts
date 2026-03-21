@@ -9,6 +9,12 @@ import { wrapSteth, unwrapWsteth, getConversionRate } from '../tools/wrap.js';
 import { getProposals, getProposal, castVote } from '../tools/governance.js';
 import { getSettings, updateSettings } from '../tools/settings.js';
 import { setAlert, listAlerts, removeAlertById, configureAlertChannels } from '../tools/alerts.js';
+import { getTotalPosition } from '../tools/position.js';
+import { loadBounds, saveBounds } from '../bounds/store.js';
+import { queryLedger, ledgerStats, initLedger } from '../ledger/store.js';
+import type { Bounds } from '../bounds/types.js';
+
+try { initLedger(); } catch { /* non-fatal */ }
 
 const cfg = loadConfig();
 const modeNote = cfg.mode === 'simulation'
@@ -234,6 +240,74 @@ server.tool(
   },
   async ({ telegram_token, telegram_chat_id, webhook_url }) => ({
     content: [{ type: 'text', text: JSON.stringify(configureAlertChannels({ telegram_token, telegram_chat_id, webhook_url }), null, 2) }],
+  })
+);
+
+// ── Position ─────────────────────────────────────────────────────────────────
+
+server.tool(
+  'get_total_position',
+  'Aggregated cross-chain position: ETH, stETH, wstETH across Ethereum + Base + Arbitrum, converted to ETH equivalent.',
+  { address: z.string().optional().describe('Ethereum address (defaults to configured wallet)') },
+  async ({ address }) => ({
+    content: [{ type: 'text', text: JSON.stringify(await getTotalPosition(address), null, 2) }],
+  })
+);
+
+// ── Bounds ───────────────────────────────────────────────────────────────────
+
+server.tool(
+  'get_bounds',
+  'Get current policy bounds (max stake per tx, daily limit, min ETH reserve, governance auto-vote).',
+  {},
+  async () => ({
+    content: [{ type: 'text', text: JSON.stringify(loadBounds(), null, 2) }],
+  })
+);
+
+server.tool(
+  'set_bounds',
+  'Update policy bounds that gate write operations.',
+  {
+    maxStakePerTx: z.number().optional().describe('Max ETH per single stake'),
+    maxDailyStake: z.number().optional().describe('Max ETH staked per day'),
+    minEthReserve: z.number().optional().describe('Min ETH to keep unstaked for gas'),
+    autoRestakeThreshold: z.number().optional().describe('Auto-restake rewards threshold'),
+    governanceAutoVote: z.boolean().optional().describe('Allow agent to auto-vote'),
+  },
+  async (patch) => {
+    const current = loadBounds();
+    if (patch.maxStakePerTx !== undefined) current.maxStakePerTx = patch.maxStakePerTx;
+    if (patch.maxDailyStake !== undefined) current.maxDailyStake = patch.maxDailyStake;
+    if (patch.minEthReserve !== undefined) current.minEthReserve = patch.minEthReserve;
+    if (patch.autoRestakeThreshold !== undefined) current.autoRestakeThreshold = patch.autoRestakeThreshold;
+    if (patch.governanceAutoVote !== undefined) current.governanceAutoVote = patch.governanceAutoVote;
+    saveBounds(current);
+    return { content: [{ type: 'text', text: JSON.stringify(current, null, 2) }] };
+  }
+);
+
+// ── Ledger ───────────────────────────────────────────────────────────────────
+
+server.tool(
+  'get_trade_history',
+  'Query the activity ledger with filters.',
+  {
+    tool: z.string().optional().describe('Filter by tool name (e.g. stake_eth)'),
+    since: z.string().optional().describe('ISO date to filter from'),
+    limit: z.number().int().optional().default(50).describe('Max results'),
+  },
+  async (opts) => ({
+    content: [{ type: 'text', text: JSON.stringify(queryLedger(opts), null, 2) }],
+  })
+);
+
+server.tool(
+  'get_staking_summary',
+  'Aggregate stats from the activity ledger: total operations, staked ETH, errors.',
+  { since: z.string().optional().describe('ISO date to filter from') },
+  async ({ since }) => ({
+    content: [{ type: 'text', text: JSON.stringify(ledgerStats(since), null, 2) }],
   })
 );
 

@@ -111,6 +111,150 @@ async function main() {
       break;
     }
 
+    // ── moly monitor ──────────────────────────────────────────────────
+    case 'monitor': {
+      const sub = args[1];
+      switch (sub) {
+        case 'start': {
+          const { spawn } = await import('child_process');
+          const child = spawn(process.argv[0], [process.argv[1], 'alert', 'daemon'], {
+            detached: true,
+            stdio: 'ignore',
+          });
+          child.unref();
+          console.log(`Monitor daemon started (PID: ${child.pid})`);
+          break;
+        }
+        case 'status': {
+          const { loadAlerts } = await import('./alerts/store.js');
+          const data = loadAlerts();
+          if (!data.daemonPid) {
+            console.log('No daemon running (or never started).');
+          } else {
+            let alive = false;
+            try { process.kill(data.daemonPid, 0); alive = true; } catch {}
+            console.log(`PID: ${data.daemonPid}  alive: ${alive}`);
+            if (data.daemonStartedAt) console.log(`Started: ${data.daemonStartedAt}`);
+            if (data.lastCheckAt) console.log(`Last check: ${data.lastCheckAt}`);
+            console.log(`Active alerts: ${data.alerts.filter((a: any) => a.enabled).length}`);
+          }
+          break;
+        }
+        case 'stop': {
+          const { loadAlerts, saveAlerts } = await import('./alerts/store.js');
+          const data = loadAlerts();
+          if (!data.daemonPid) {
+            console.log('No daemon PID recorded.');
+            break;
+          }
+          try {
+            process.kill(data.daemonPid, 'SIGTERM');
+            console.log(`Sent SIGTERM to PID ${data.daemonPid}`);
+          } catch {
+            console.log(`PID ${data.daemonPid} not running.`);
+          }
+          data.daemonPid = undefined;
+          saveAlerts(data);
+          break;
+        }
+        default:
+          console.log('Usage: moly monitor <start|status|stop>');
+      }
+      break;
+    }
+
+    // ── moly bounds ──────────────────────────────────────────────────
+    case 'bounds': {
+      const sub = args[1];
+      const getFlag = (flag: string) => {
+        const i = args.indexOf(flag);
+        return i !== -1 ? args[i + 1] : undefined;
+      };
+
+      switch (sub) {
+        case 'show':
+        case undefined: {
+          const { loadBounds } = await import('./bounds/store.js');
+          console.log(JSON.stringify(loadBounds(), null, 2));
+          break;
+        }
+        case 'set': {
+          const { loadBounds, saveBounds } = await import('./bounds/store.js');
+          const b = loadBounds();
+          const mst = getFlag('--max-stake-per-tx');
+          const mds = getFlag('--max-daily-stake');
+          const mer = getFlag('--min-eth-reserve');
+          const art = getFlag('--auto-restake-threshold');
+          const gov = getFlag('--governance-auto-vote');
+          if (mst) b.maxStakePerTx = parseFloat(mst);
+          if (mds) b.maxDailyStake = parseFloat(mds);
+          if (mer) b.minEthReserve = parseFloat(mer);
+          if (art) b.autoRestakeThreshold = parseFloat(art);
+          if (gov) b.governanceAutoVote = gov === 'true';
+          saveBounds(b);
+          console.log('Bounds updated:', JSON.stringify(b, null, 2));
+          break;
+        }
+        case 'reset': {
+          const { resetBounds } = await import('./bounds/store.js');
+          resetBounds();
+          console.log('Bounds reset to defaults.');
+          break;
+        }
+        default:
+          console.log('Usage: moly bounds [show|set|reset]');
+          console.log('  set flags: --max-stake-per-tx, --max-daily-stake, --min-eth-reserve, --auto-restake-threshold, --governance-auto-vote');
+      }
+      break;
+    }
+
+    // ── moly ledger ──────────────────────────────────────────────────
+    case 'ledger': {
+      const sub = args[1];
+      const getFlag = (flag: string) => {
+        const i = args.indexOf(flag);
+        return i !== -1 ? args[i + 1] : undefined;
+      };
+      const { initLedger, queryLedger, ledgerStats, exportLedger } = await import('./ledger/store.js');
+      initLedger();
+
+      switch (sub) {
+        case 'list': {
+          const tool = getFlag('--tool');
+          const since = getFlag('--since');
+          const limit = getFlag('--limit');
+          const rows = queryLedger({ tool: tool ?? undefined, since: since ?? undefined, limit: limit ? parseInt(limit) : 50 });
+          console.log(JSON.stringify(rows, null, 2));
+          break;
+        }
+        case 'stats': {
+          const since = getFlag('--since');
+          console.log(JSON.stringify(ledgerStats(since ?? undefined), null, 2));
+          break;
+        }
+        case 'export': {
+          const format = (getFlag('--format') ?? 'json') as 'json' | 'csv';
+          console.log(exportLedger(format));
+          break;
+        }
+        default:
+          console.log('Usage: moly ledger <list|stats|export>');
+          console.log('  list: --tool <name> --since <ISO date> --limit <n>');
+          console.log('  export: --format <json|csv>');
+      }
+      break;
+    }
+
+    // ── moly position ────────────────────────────────────────────────
+    case 'position': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const { getTotalPosition } = await import('./tools/position.js');
+      const address = args[1];
+      const pos = await getTotalPosition(address);
+      console.log(JSON.stringify(pos, null, 2));
+      break;
+    }
+
     // ── moly --server (force-start, used in AI client configs) ────────
     case '--server': {
       if (!configExists()) {

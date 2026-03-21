@@ -71,6 +71,32 @@ async function evaluateAlert(alert: Alert, lastProposalCount?: number): Promise<
         };
       }
 
+      case 'reward_delta': {
+        const res = await getBalance();
+        const current = parseFloat(res.balances.stETH);
+        const prev = data.lastRewardBalance ? parseFloat(data.lastRewardBalance) : current;
+        const delta = current - prev;
+        data.lastRewardBalance = current.toString();
+        return {
+          triggered: delta > (alert.threshold ?? 0),
+          data: { delta: delta.toFixed(8), current: current.toFixed(6), previous: prev.toFixed(6) },
+        };
+      }
+
+      case 'governance_expiring': {
+        const res = await getProposals(10);
+        const now = Date.now();
+        const soon = 24 * 60 * 60 * 1000;
+        const votingWindow = 72 * 60 * 60 * 1000;
+        const expiring = (res.proposals ?? []).filter((p: any) =>
+          p.open && p.startDate && (new Date(p.startDate).getTime() + votingWindow - now) < soon
+        );
+        return {
+          triggered: expiring.length > 0,
+          data: { count: expiring.length, ids: expiring.map((p: any) => p.id) },
+        };
+      }
+
       default:
         return null;
     }
@@ -85,6 +111,12 @@ export async function runDaemon(intervalMs = 30000) {
   const channelConfig = loadChannelConfig();
 
   process.stderr.write(`Alert daemon running, polling every ${intervalMs / 1000}s\n`);
+
+  // record daemon metadata
+  const initData = loadAlerts();
+  initData.daemonPid = process.pid;
+  initData.daemonStartedAt = new Date().toISOString();
+  saveAlerts(initData);
 
   while (true) {
     const data = loadAlerts();
@@ -111,6 +143,7 @@ export async function runDaemon(intervalMs = 30000) {
       }
     }
 
+    data.lastCheckAt = new Date().toISOString();
     saveAlerts(data);
     await new Promise((r) => setTimeout(r, intervalMs));
   }

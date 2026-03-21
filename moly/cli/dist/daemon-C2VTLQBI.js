@@ -1,19 +1,22 @@
 #!/usr/bin/env node
 import {
-  getBalance,
-  getConversionRate,
   getProposals,
-  getRewards,
-  getRuntime,
   getWithdrawalRequests,
   getWithdrawalStatus
-} from "./chunk-OAISRMIP.js";
+} from "./chunk-N7HILYCG.js";
 import {
   loadAlerts,
   loadChannelConfig,
   saveAlerts
-} from "./chunk-CKNE4DRV.js";
-import "./chunk-ELH5VHWX.js";
+} from "./chunk-LMW24A22.js";
+import {
+  getBalance,
+  getConversionRate,
+  getRewards,
+  getRuntime
+} from "./chunk-Y3MG4RMT.js";
+import "./chunk-TJ66OXD4.js";
+import "./chunk-PDX44BCA.js";
 
 // src/alerts/notify.ts
 async function sendTelegram(token, chatId, message) {
@@ -54,26 +57,26 @@ async function sendWebhook(url, payload) {
     return false;
   }
 }
-function formatTelegramMessage(alert, data) {
+function formatTelegramMessage(alert, data2) {
   const lines = [
     "*Moly Alert*",
     "",
     `Condition: \`${alert.condition}\``
   ];
   if (alert.threshold !== void 0) lines.push(`Threshold: ${alert.threshold}`);
-  if (data.current !== void 0) lines.push(`Current: ${data.current}`);
-  if (data.detail) lines.push(`Detail: ${data.detail}`);
+  if (data2.current !== void 0) lines.push(`Current: ${data2.current}`);
+  if (data2.detail) lines.push(`Detail: ${data2.detail}`);
   lines.push(`Triggered: ${(/* @__PURE__ */ new Date()).toISOString()}`);
   return lines.join("\n");
 }
-async function dispatch(channelConfig, channel, alert, data) {
+async function dispatch(channelConfig, channel, alert, data2) {
   if (channel === "telegram") {
     const tg = channelConfig.telegram;
     if (!tg) {
       process.stderr.write("Telegram not configured\n");
       return false;
     }
-    return sendTelegram(tg.token, tg.chatId, formatTelegramMessage(alert, data));
+    return sendTelegram(tg.token, tg.chatId, formatTelegramMessage(alert, data2));
   }
   if (channel === "webhook") {
     const wh = channelConfig.webhook;
@@ -83,7 +86,7 @@ async function dispatch(channelConfig, channel, alert, data) {
     }
     return sendWebhook(wh.url, {
       alert: { id: alert.id, condition: alert.condition, threshold: alert.threshold },
-      data,
+      data: data2,
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       source: "moly-alerts"
     });
@@ -139,6 +142,30 @@ async function evaluateAlert(alert, lastProposalCount) {
           newProposalCount: current
         };
       }
+      case "reward_delta": {
+        const res = await getBalance();
+        const current = parseFloat(res.balances.stETH);
+        const prev = data.lastRewardBalance ? parseFloat(data.lastRewardBalance) : current;
+        const delta = current - prev;
+        data.lastRewardBalance = current.toString();
+        return {
+          triggered: delta > (alert.threshold ?? 0),
+          data: { delta: delta.toFixed(8), current: current.toFixed(6), previous: prev.toFixed(6) }
+        };
+      }
+      case "governance_expiring": {
+        const res = await getProposals(10);
+        const now = Date.now();
+        const soon = 24 * 60 * 60 * 1e3;
+        const votingWindow = 72 * 60 * 60 * 1e3;
+        const expiring = (res.proposals ?? []).filter(
+          (p) => p.open && p.startDate && new Date(p.startDate).getTime() + votingWindow - now < soon
+        );
+        return {
+          triggered: expiring.length > 0,
+          data: { count: expiring.length, ids: expiring.map((p) => p.id) }
+        };
+      }
       default:
         return null;
     }
@@ -153,18 +180,22 @@ async function runDaemon(intervalMs = 3e4) {
   const channelConfig = loadChannelConfig();
   process.stderr.write(`Alert daemon running, polling every ${intervalMs / 1e3}s
 `);
+  const initData = loadAlerts();
+  initData.daemonPid = process.pid;
+  initData.daemonStartedAt = (/* @__PURE__ */ new Date()).toISOString();
+  saveAlerts(initData);
   while (true) {
-    const data = loadAlerts();
-    const active = data.alerts.filter((a) => a.enabled);
+    const data2 = loadAlerts();
+    const active = data2.alerts.filter((a) => a.enabled);
     for (const alert of active) {
       if (alert.lastTriggered) {
         const elapsed = Date.now() - new Date(alert.lastTriggered).getTime();
         if (elapsed < COOLDOWN_MS) continue;
       }
-      const result = await evaluateAlert(alert, data.lastProposalCount);
+      const result = await evaluateAlert(alert, data2.lastProposalCount);
       if (!result) continue;
       if (result.newProposalCount !== void 0) {
-        data.lastProposalCount = result.newProposalCount;
+        data2.lastProposalCount = result.newProposalCount;
       }
       if (result.triggered) {
         process.stderr.write(`Alert triggered: ${alert.condition} (${alert.id.slice(0, 8)})
@@ -173,7 +204,8 @@ async function runDaemon(intervalMs = 3e4) {
         alert.lastTriggered = (/* @__PURE__ */ new Date()).toISOString();
       }
     }
-    saveAlerts(data);
+    data2.lastCheckAt = (/* @__PURE__ */ new Date()).toISOString();
+    saveAlerts(data2);
     await new Promise((r) => setTimeout(r, intervalMs));
   }
 }

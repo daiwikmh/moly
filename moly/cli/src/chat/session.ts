@@ -1,9 +1,12 @@
 import * as readline from 'readline';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { callAi, makeToolResultMessage, type ChatMessage } from './providers.js';
 import { TOOL_DEFS, executeTool } from './tools.js';
 import type { MolyConfig } from '../config/types.js';
+import { checkBounds, recordStake } from '../bounds/enforce.js';
+import { initLedger, logEntry } from '../ledger/store.js';
 
 const R  = '\x1b[0m';
 const B  = '\x1b[1m';
@@ -29,22 +32,25 @@ function ln(text = '') { process.stdout.write(text + '\n'); }
 
 function saveTrade(toolName: string, args: Record<string, unknown>, result: string) {
   try {
-    const tradesDir = path.join(process.cwd(), 'trades');
-    if (!fs.existsSync(tradesDir)) fs.mkdirSync(tradesDir, { recursive: true });
+    // extract tx_hash and amount from result if present
+    let txHash: string | undefined;
+    let amount: string | undefined;
+    try {
+      const parsed = JSON.parse(result);
+      txHash = parsed.txHash ?? parsed.tx_hash;
+      amount = args.amount_eth as string ?? args.amount_steth as string ?? args.amount as string;
+    } catch { /* non-json result */ }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const file = path.join(tradesDir, `${today}.jsonl`);
-
-    const record = JSON.stringify({
-      ts: new Date().toISOString(),
+    logEntry({
       tool: toolName,
       args,
-      result: (() => { try { return JSON.parse(result); } catch { return result; } })(),
+      result,
+      tx_hash: txHash,
+      amount,
+      status: 'ok',
     });
-
-    fs.appendFileSync(file, record + '\n');
   } catch {
-    // non-fatal — never crash the session over a log write
+    // non-fatal
   }
 }
 
@@ -70,12 +76,25 @@ export async function startChatSession(cfg: MolyConfig) {
     process.exit(1);
   }
 
+  // init ledger db
+  try { initLedger(); } catch { /* non-fatal */ }
+
   const { provider, apiKey, model } = cfg.ai;
+
+  // load skill.md if available
+  let skillContext = '';
+  try {
+    const skillPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../lido.skill.md');
+    if (fs.existsSync(skillPath)) {
+      skillContext = fs.readFileSync(skillPath, 'utf-8') + '\n\n';
+    }
+  } catch { /* non-fatal */ }
 
   const messages: ChatMessage[] = [
     {
       role: 'user',
       content:
+        skillContext +
         `You are Moly, a terminal assistant for Lido Finance on ${cfg.network}. ` +
         `Mode: ${cfg.mode} (${cfg.mode === 'simulation' ? 'dry-run, nothing broadcast' : 'LIVE - real on-chain transactions'}). ` +
         `Chain scope: ${cfg.chainScope ?? 'ethereum'}. ` +
@@ -131,11 +150,28 @@ export async function startChatSession(cfg: MolyConfig) {
 
           for (const tc of response.toolCalls) {
             ln(`${D}  ↳  ${MA}${tc.name}${R}${D} ${JSON.stringify(tc.args)}${R}`);
+
+            // bounds enforcement for write tools
+            if (WRITE_TOOLS.has(tc.name)) {
+              try {
+                const check = await checkBounds(tc.name, tc.args);
+                if (!check.allowed) {
+                  ln(`${RE}  ✕  BLOCKED: ${check.reason}${R}`);
+                  toolResults.push(makeToolResultMessage(provider, tc.id, tc.name, JSON.stringify({ blocked: true, reason: check.reason })));
+                  continue;
+                }
+              } catch { /* bounds check failed, allow through */ }
+            }
+
             const result = await executeTool(tc.name, tc.args);
             ln(`${D}     ${result.slice(0, 300)}${result.length > 300 ? '…' : ''}${R}`);
 
             if (WRITE_TOOLS.has(tc.name)) {
               saveTrade(tc.name, tc.args, result);
+              // track stake amount for daily limit
+              if (tc.name === 'stake_eth' && tc.args.amount_eth) {
+                try { recordStake(parseFloat(tc.args.amount_eth as string)); } catch {}
+              }
             }
 
             toolResults.push(makeToolResultMessage(provider, tc.id, tc.name, result));

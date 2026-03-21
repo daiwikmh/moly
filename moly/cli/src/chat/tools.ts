@@ -6,6 +6,10 @@ import { getProposals, getProposal, castVote } from '../tools/governance.js';
 import { getSettings, updateSettings } from '../tools/settings.js';
 import { getL2Balance, getBridgeQuote, bridgeToEthereum, getBridgeStatus } from '../tools/bridge.js';
 import { setAlert, listAlerts, removeAlertById, configureAlertChannels } from '../tools/alerts.js';
+import { getTotalPosition } from '../tools/position.js';
+import { loadBounds, saveBounds } from '../bounds/store.js';
+import { queryLedger, ledgerStats } from '../ledger/store.js';
+import type { Bounds } from '../bounds/types.js';
 
 export interface ToolDef {
   name: string;
@@ -266,6 +270,57 @@ export const TOOL_DEFS: ToolDef[] = [
       },
     },
   },
+  {
+    name: 'get_total_position',
+    description: 'Aggregated cross-chain position: ETH, stETH, wstETH across Ethereum + Base + Arbitrum, all converted to ETH equivalent.',
+    parameters: {
+      type: 'object',
+      properties: {
+        address: { type: 'string', description: 'Ethereum address (optional)' },
+      },
+    },
+  },
+  {
+    name: 'get_bounds',
+    description: 'Get current policy bounds (max stake per tx, daily limit, min ETH reserve, governance auto-vote).',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'set_bounds',
+    description: 'Update policy bounds that gate write operations.',
+    parameters: {
+      type: 'object',
+      properties: {
+        maxStakePerTx: { type: 'number', description: 'Max ETH per single stake' },
+        maxDailyStake: { type: 'number', description: 'Max ETH staked per day' },
+        minEthReserve: { type: 'number', description: 'Min ETH to keep unstaked for gas' },
+        autoRestakeThreshold: { type: 'number', description: 'Auto-restake rewards threshold in ETH' },
+        governanceAutoVote: { type: 'boolean', description: 'Allow agent to auto-vote on proposals' },
+      },
+    },
+  },
+  {
+    name: 'get_trade_history',
+    description: 'Query the activity ledger with filters.',
+    parameters: {
+      type: 'object',
+      properties: {
+        tool: { type: 'string', description: 'Filter by tool name (e.g. stake_eth)' },
+        since: { type: 'string', description: 'ISO date to filter from (e.g. 2026-01-01)' },
+        limit: { type: 'number', description: 'Max results (default 50)' },
+      },
+    },
+  },
+  {
+    name: 'get_staking_summary',
+    description: 'Aggregate stats from the activity ledger: total operations, staked ETH, errors.',
+    parameters: {
+      type: 'object',
+      properties: {
+        since: { type: 'string', description: 'ISO date to filter from (optional)' },
+      },
+    },
+  },
 ];
 
 export async function executeTool(name: string, args: Record<string, unknown>): Promise<string> {
@@ -295,6 +350,22 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       case 'list_alerts':         result = listAlerts(); break;
       case 'remove_alert':        result = removeAlertById(args.id as string); break;
       case 'configure_alert_channels': result = configureAlertChannels(args as any); break;
+      case 'get_total_position':  result = await getTotalPosition(args.address as string | undefined); break;
+      case 'get_bounds':          result = loadBounds(); break;
+      case 'set_bounds': {
+        const current = loadBounds();
+        const patch = args as Partial<Bounds>;
+        if (patch.maxStakePerTx !== undefined) current.maxStakePerTx = patch.maxStakePerTx;
+        if (patch.maxDailyStake !== undefined) current.maxDailyStake = patch.maxDailyStake;
+        if (patch.minEthReserve !== undefined) current.minEthReserve = patch.minEthReserve;
+        if (patch.autoRestakeThreshold !== undefined) current.autoRestakeThreshold = patch.autoRestakeThreshold;
+        if (patch.governanceAutoVote !== undefined) current.governanceAutoVote = patch.governanceAutoVote;
+        saveBounds(current);
+        result = current;
+        break;
+      }
+      case 'get_trade_history':   result = queryLedger({ tool: args.tool as string, since: args.since as string, limit: args.limit as number }); break;
+      case 'get_staking_summary': result = ledgerStats(args.since as string | undefined); break;
       default: return `Unknown tool: ${name}`;
     }
     return JSON.stringify(result, null, 2);

@@ -3,36 +3,55 @@ import {
   getSettings,
   stakeEth,
   updateSettings
-} from "../chunk-MN6L5A4Y.js";
+} from "../chunk-WFNKYSHA.js";
+import {
+  castVote,
+  claimWithdrawals,
+  getProposal,
+  getProposals,
+  getWithdrawalRequests,
+  getWithdrawalStatus,
+  requestWithdrawal
+} from "../chunk-N7HILYCG.js";
 import {
   configureAlertChannels,
   listAlerts,
   removeAlertById,
   setAlert
-} from "../chunk-RICVAPHZ.js";
+} from "../chunk-FNOVBU5L.js";
+import "../chunk-LMW24A22.js";
 import {
-  castVote,
-  claimWithdrawals,
+  getTotalPosition
+} from "../chunk-Z2QIZCUK.js";
+import {
   getBalance,
   getConversionRate,
-  getProposal,
-  getProposals,
   getRewards,
-  getWithdrawalRequests,
-  getWithdrawalStatus,
-  requestWithdrawal,
   unwrapWsteth,
   wrapSteth
-} from "../chunk-OAISRMIP.js";
-import "../chunk-CKNE4DRV.js";
+} from "../chunk-Y3MG4RMT.js";
 import {
   loadConfig
-} from "../chunk-ELH5VHWX.js";
+} from "../chunk-TJ66OXD4.js";
+import {
+  loadBounds,
+  saveBounds
+} from "../chunk-CH4MXPWS.js";
+import {
+  initLedger,
+  ledgerStats,
+  queryLedger
+} from "../chunk-RR74UAKD.js";
+import "../chunk-PDX44BCA.js";
 
 // src/server/index.ts
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+try {
+  initLedger();
+} catch {
+}
 var cfg = loadConfig();
 var modeNote = cfg.mode === "simulation" ? "SIMULATION \u2014 dry_run true by default, no real transactions" : "LIVE \u2014 real transactions on " + (cfg.network === "mainnet" ? "Ethereum Mainnet" : "Hoodi Testnet");
 var server = new McpServer({ name: "@moly/lido", version: "1.0.0" });
@@ -221,6 +240,63 @@ server.tool(
   },
   async ({ telegram_token, telegram_chat_id, webhook_url }) => ({
     content: [{ type: "text", text: JSON.stringify(configureAlertChannels({ telegram_token, telegram_chat_id, webhook_url }), null, 2) }]
+  })
+);
+server.tool(
+  "get_total_position",
+  "Aggregated cross-chain position: ETH, stETH, wstETH across Ethereum + Base + Arbitrum, converted to ETH equivalent.",
+  { address: z.string().optional().describe("Ethereum address (defaults to configured wallet)") },
+  async ({ address }) => ({
+    content: [{ type: "text", text: JSON.stringify(await getTotalPosition(address), null, 2) }]
+  })
+);
+server.tool(
+  "get_bounds",
+  "Get current policy bounds (max stake per tx, daily limit, min ETH reserve, governance auto-vote).",
+  {},
+  async () => ({
+    content: [{ type: "text", text: JSON.stringify(loadBounds(), null, 2) }]
+  })
+);
+server.tool(
+  "set_bounds",
+  "Update policy bounds that gate write operations.",
+  {
+    maxStakePerTx: z.number().optional().describe("Max ETH per single stake"),
+    maxDailyStake: z.number().optional().describe("Max ETH staked per day"),
+    minEthReserve: z.number().optional().describe("Min ETH to keep unstaked for gas"),
+    autoRestakeThreshold: z.number().optional().describe("Auto-restake rewards threshold"),
+    governanceAutoVote: z.boolean().optional().describe("Allow agent to auto-vote")
+  },
+  async (patch) => {
+    const current = loadBounds();
+    if (patch.maxStakePerTx !== void 0) current.maxStakePerTx = patch.maxStakePerTx;
+    if (patch.maxDailyStake !== void 0) current.maxDailyStake = patch.maxDailyStake;
+    if (patch.minEthReserve !== void 0) current.minEthReserve = patch.minEthReserve;
+    if (patch.autoRestakeThreshold !== void 0) current.autoRestakeThreshold = patch.autoRestakeThreshold;
+    if (patch.governanceAutoVote !== void 0) current.governanceAutoVote = patch.governanceAutoVote;
+    saveBounds(current);
+    return { content: [{ type: "text", text: JSON.stringify(current, null, 2) }] };
+  }
+);
+server.tool(
+  "get_trade_history",
+  "Query the activity ledger with filters.",
+  {
+    tool: z.string().optional().describe("Filter by tool name (e.g. stake_eth)"),
+    since: z.string().optional().describe("ISO date to filter from"),
+    limit: z.number().int().optional().default(50).describe("Max results")
+  },
+  async (opts) => ({
+    content: [{ type: "text", text: JSON.stringify(queryLedger(opts), null, 2) }]
+  })
+);
+server.tool(
+  "get_staking_summary",
+  "Aggregate stats from the activity ledger: total operations, staked ETH, errors.",
+  { since: z.string().optional().describe("ISO date to filter from") },
+  async ({ since }) => ({
+    content: [{ type: "text", text: JSON.stringify(ledgerStats(since), null, 2) }]
   })
 );
 var transport = new StdioServerTransport();

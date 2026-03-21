@@ -6,7 +6,8 @@ import {
   loadConfig,
   redactedConfig,
   saveConfig
-} from "./chunk-ELH5VHWX.js";
+} from "./chunk-TJ66OXD4.js";
+import "./chunk-PDX44BCA.js";
 
 // src/setup/wizard.ts
 import {
@@ -253,7 +254,7 @@ async function main() {
     case "setup": {
       const { cfg, terminalMode } = await runWizard();
       if (terminalMode) {
-        const { startChatSession } = await import("./session-67NDNZYH.js");
+        const { startChatSession } = await import("./session-7MLCUSPD.js");
         await startChatSession(cfg);
       } else {
         await startServer();
@@ -298,13 +299,13 @@ async function main() {
           }
           const threshold = args[3] && !args[3].startsWith("-") ? parseFloat(args[3]) : void 0;
           const channel = getFlag("--channel") ?? "telegram";
-          const { setAlert } = await import("./alerts-DBJZDXAO.js");
+          const { setAlert } = await import("./alerts-M2Q5FSOX.js");
           const alert = setAlert({ condition, threshold, channel });
           console.log("Alert created:", JSON.stringify(alert, null, 2));
           break;
         }
         case "list": {
-          const { listAlerts } = await import("./alerts-DBJZDXAO.js");
+          const { listAlerts } = await import("./alerts-M2Q5FSOX.js");
           console.log(JSON.stringify(listAlerts(), null, 2));
           break;
         }
@@ -314,12 +315,12 @@ async function main() {
             console.log("Usage: moly alert remove <id>");
             break;
           }
-          const { removeAlertById } = await import("./alerts-DBJZDXAO.js");
+          const { removeAlertById } = await import("./alerts-M2Q5FSOX.js");
           console.log(JSON.stringify(removeAlertById(id), null, 2));
           break;
         }
         case "channels": {
-          const { configureAlertChannels } = await import("./alerts-DBJZDXAO.js");
+          const { configureAlertChannels } = await import("./alerts-M2Q5FSOX.js");
           const result = configureAlertChannels({
             telegram_token: getFlag("--telegram-token"),
             telegram_chat_id: getFlag("--telegram-chat"),
@@ -333,7 +334,7 @@ async function main() {
             console.log("No config. Run: moly setup");
             process.exit(1);
           }
-          const { runDaemon } = await import("./daemon-3422I4QB.js");
+          const { runDaemon } = await import("./daemon-C2VTLQBI.js");
           await runDaemon();
           break;
         }
@@ -352,6 +353,151 @@ async function main() {
       }
       break;
     }
+    // ── moly monitor ──────────────────────────────────────────────────
+    case "monitor": {
+      const sub = args[1];
+      switch (sub) {
+        case "start": {
+          const { spawn } = await import("child_process");
+          const child = spawn(process.argv[0], [process.argv[1], "alert", "daemon"], {
+            detached: true,
+            stdio: "ignore"
+          });
+          child.unref();
+          console.log(`Monitor daemon started (PID: ${child.pid})`);
+          break;
+        }
+        case "status": {
+          const { loadAlerts } = await import("./store-4FGS73N4.js");
+          const data = loadAlerts();
+          if (!data.daemonPid) {
+            console.log("No daemon running (or never started).");
+          } else {
+            let alive = false;
+            try {
+              process.kill(data.daemonPid, 0);
+              alive = true;
+            } catch {
+            }
+            console.log(`PID: ${data.daemonPid}  alive: ${alive}`);
+            if (data.daemonStartedAt) console.log(`Started: ${data.daemonStartedAt}`);
+            if (data.lastCheckAt) console.log(`Last check: ${data.lastCheckAt}`);
+            console.log(`Active alerts: ${data.alerts.filter((a) => a.enabled).length}`);
+          }
+          break;
+        }
+        case "stop": {
+          const { loadAlerts, saveAlerts } = await import("./store-4FGS73N4.js");
+          const data = loadAlerts();
+          if (!data.daemonPid) {
+            console.log("No daemon PID recorded.");
+            break;
+          }
+          try {
+            process.kill(data.daemonPid, "SIGTERM");
+            console.log(`Sent SIGTERM to PID ${data.daemonPid}`);
+          } catch {
+            console.log(`PID ${data.daemonPid} not running.`);
+          }
+          data.daemonPid = void 0;
+          saveAlerts(data);
+          break;
+        }
+        default:
+          console.log("Usage: moly monitor <start|status|stop>");
+      }
+      break;
+    }
+    // ── moly bounds ──────────────────────────────────────────────────
+    case "bounds": {
+      const sub = args[1];
+      const getFlag = (flag) => {
+        const i = args.indexOf(flag);
+        return i !== -1 ? args[i + 1] : void 0;
+      };
+      switch (sub) {
+        case "show":
+        case void 0: {
+          const { loadBounds } = await import("./store-5CEITPDY.js");
+          console.log(JSON.stringify(loadBounds(), null, 2));
+          break;
+        }
+        case "set": {
+          const { loadBounds, saveBounds } = await import("./store-5CEITPDY.js");
+          const b = loadBounds();
+          const mst = getFlag("--max-stake-per-tx");
+          const mds = getFlag("--max-daily-stake");
+          const mer = getFlag("--min-eth-reserve");
+          const art = getFlag("--auto-restake-threshold");
+          const gov = getFlag("--governance-auto-vote");
+          if (mst) b.maxStakePerTx = parseFloat(mst);
+          if (mds) b.maxDailyStake = parseFloat(mds);
+          if (mer) b.minEthReserve = parseFloat(mer);
+          if (art) b.autoRestakeThreshold = parseFloat(art);
+          if (gov) b.governanceAutoVote = gov === "true";
+          saveBounds(b);
+          console.log("Bounds updated:", JSON.stringify(b, null, 2));
+          break;
+        }
+        case "reset": {
+          const { resetBounds } = await import("./store-5CEITPDY.js");
+          resetBounds();
+          console.log("Bounds reset to defaults.");
+          break;
+        }
+        default:
+          console.log("Usage: moly bounds [show|set|reset]");
+          console.log("  set flags: --max-stake-per-tx, --max-daily-stake, --min-eth-reserve, --auto-restake-threshold, --governance-auto-vote");
+      }
+      break;
+    }
+    // ── moly ledger ──────────────────────────────────────────────────
+    case "ledger": {
+      const sub = args[1];
+      const getFlag = (flag) => {
+        const i = args.indexOf(flag);
+        return i !== -1 ? args[i + 1] : void 0;
+      };
+      const { initLedger, queryLedger, ledgerStats, exportLedger } = await import("./store-WRLUM7OW.js");
+      initLedger();
+      switch (sub) {
+        case "list": {
+          const tool = getFlag("--tool");
+          const since = getFlag("--since");
+          const limit = getFlag("--limit");
+          const rows = queryLedger({ tool: tool ?? void 0, since: since ?? void 0, limit: limit ? parseInt(limit) : 50 });
+          console.log(JSON.stringify(rows, null, 2));
+          break;
+        }
+        case "stats": {
+          const since = getFlag("--since");
+          console.log(JSON.stringify(ledgerStats(since ?? void 0), null, 2));
+          break;
+        }
+        case "export": {
+          const format = getFlag("--format") ?? "json";
+          console.log(exportLedger(format));
+          break;
+        }
+        default:
+          console.log("Usage: moly ledger <list|stats|export>");
+          console.log("  list: --tool <name> --since <ISO date> --limit <n>");
+          console.log("  export: --format <json|csv>");
+      }
+      break;
+    }
+    // ── moly position ────────────────────────────────────────────────
+    case "position": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const { getTotalPosition } = await import("./position-F32CGXT3.js");
+      const address = args[1];
+      const pos = await getTotalPosition(address);
+      console.log(JSON.stringify(pos, null, 2));
+      break;
+    }
     // ── moly --server (force-start, used in AI client configs) ────────
     case "--server": {
       if (!configExists()) {
@@ -368,7 +514,7 @@ async function main() {
       if (!configExists()) {
         const { cfg, terminalMode } = await runWizard();
         if (terminalMode) {
-          const { startChatSession } = await import("./session-67NDNZYH.js");
+          const { startChatSession } = await import("./session-7MLCUSPD.js");
           await startChatSession(cfg);
         } else {
           await startServer();

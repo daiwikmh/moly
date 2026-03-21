@@ -5,7 +5,7 @@ import {
   loadChannelConfig,
   removeAlert,
   saveChannelConfig
-} from "./chunk-CKNE4DRV.js";
+} from "./chunk-LMW24A22.js";
 
 // src/tools/alerts.ts
 var VALID_CONDITIONS = [
@@ -16,7 +16,9 @@ var VALID_CONDITIONS = [
   "withdrawal_ready",
   "proposal_new",
   "conversion_rate_above",
-  "conversion_rate_below"
+  "conversion_rate_below",
+  "reward_delta",
+  "governance_expiring"
 ];
 var NEEDS_THRESHOLD = /* @__PURE__ */ new Set([
   "balance_below",
@@ -24,7 +26,8 @@ var NEEDS_THRESHOLD = /* @__PURE__ */ new Set([
   "reward_rate_below",
   "reward_rate_above",
   "conversion_rate_above",
-  "conversion_rate_below"
+  "conversion_rate_below",
+  "reward_delta"
 ]);
 function setAlert(params) {
   const condition = params.condition;

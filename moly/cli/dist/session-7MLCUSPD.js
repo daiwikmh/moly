@@ -3,36 +3,55 @@ import {
   getSettings,
   stakeEth,
   updateSettings
-} from "./chunk-MN6L5A4Y.js";
+} from "./chunk-WFNKYSHA.js";
+import {
+  castVote,
+  claimWithdrawals,
+  getProposal,
+  getProposals,
+  getWithdrawalRequests,
+  getWithdrawalStatus,
+  requestWithdrawal
+} from "./chunk-N7HILYCG.js";
 import {
   configureAlertChannels,
   listAlerts,
   removeAlertById,
   setAlert
-} from "./chunk-RICVAPHZ.js";
+} from "./chunk-FNOVBU5L.js";
+import "./chunk-LMW24A22.js";
 import {
-  L2_CHAINS,
-  castVote,
-  claimWithdrawals,
+  bridgeToEthereum,
+  getBridgeQuote,
+  getBridgeStatus,
+  getL2Balance,
+  getTotalPosition
+} from "./chunk-Z2QIZCUK.js";
+import {
   getBalance,
   getConversionRate,
-  getProposal,
-  getProposals,
   getRewards,
-  getRuntime,
-  getWithdrawalRequests,
-  getWithdrawalStatus,
-  requestWithdrawal,
   unwrapWsteth,
   wrapSteth
-} from "./chunk-OAISRMIP.js";
-import "./chunk-CKNE4DRV.js";
-import "./chunk-ELH5VHWX.js";
+} from "./chunk-Y3MG4RMT.js";
+import "./chunk-TJ66OXD4.js";
+import {
+  loadBounds,
+  saveBounds
+} from "./chunk-CH4MXPWS.js";
+import {
+  initLedger,
+  ledgerStats,
+  logEntry,
+  queryLedger
+} from "./chunk-RR74UAKD.js";
+import "./chunk-PDX44BCA.js";
 
 // src/chat/session.ts
 import * as readline from "readline";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 
 // src/chat/providers.ts
 async function callAnthropic(apiKey, model, messages, tools) {
@@ -184,157 +203,6 @@ function makeToolResultMessage(provider, toolCallId, toolName, result) {
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
-}
-
-// src/tools/bridge.ts
-import { formatEther, parseEther, parseAbi } from "viem";
-var LIFI_BASE = "https://li.quest/v1";
-var ERC20_ABI = parseAbi([
-  "function balanceOf(address) view returns (uint256)",
-  "function allowance(address owner, address spender) view returns (uint256)",
-  "function approve(address spender, uint256 amount) returns (bool)"
-]);
-var NATIVE_TOKEN = "0x0000000000000000000000000000000000000000";
-var L1_WSTETH = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0";
-function tokenAddress(chain, token) {
-  if (token === "ETH") return NATIVE_TOKEN;
-  return L2_CHAINS[chain].wstETH;
-}
-function toTokenAddress(toToken) {
-  if (!toToken || toToken === "ETH") return NATIVE_TOKEN;
-  return L1_WSTETH;
-}
-function ensureMainnet() {
-  const rt = getRuntime();
-  if (rt.config.network !== "mainnet") {
-    throw new Error("Bridge tools only work on mainnet. LI.FI does not support testnets.");
-  }
-}
-async function getL2Balance(sourceChain, address) {
-  ensureMainnet();
-  const rt = getRuntime();
-  const addr = address ?? rt.getAddress();
-  const client = rt.getL2PublicClient(sourceChain);
-  const cfg = L2_CHAINS[sourceChain];
-  const [eth, wsteth] = await Promise.all([
-    client.getBalance({ address: addr }),
-    client.readContract({ address: cfg.wstETH, abi: ERC20_ABI, functionName: "balanceOf", args: [addr] })
-  ]);
-  return {
-    address: addr,
-    chain: cfg.name,
-    chainId: cfg.chainId,
-    balances: { ETH: formatEther(eth), wstETH: formatEther(wsteth) }
-  };
-}
-async function getBridgeQuote(sourceChain, token, amount, toToken) {
-  ensureMainnet();
-  const rt = getRuntime();
-  const addr = rt.getAddress();
-  const cfg = L2_CHAINS[sourceChain];
-  const fromToken = tokenAddress(sourceChain, token);
-  const toAddr = toTokenAddress(toToken);
-  const fromAmount = parseEther(amount).toString();
-  const url = `${LIFI_BASE}/quote?fromChain=${cfg.chainId}&toChain=1&fromToken=${fromToken}&toToken=${toAddr}&fromAmount=${fromAmount}&fromAddress=${addr}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`LI.FI quote failed (${res.status}): ${body}`);
-  }
-  const data = await res.json();
-  return {
-    sourceChain: cfg.name,
-    token,
-    amount,
-    toToken: toToken ?? "ETH",
-    toAmount: formatEther(BigInt(data.estimate?.toAmount ?? "0")),
-    estimatedDuration: `${Math.ceil((data.estimate?.executionDuration ?? 0) / 60)} min`,
-    gasCosts: data.estimate?.gasCosts ?? [],
-    feeCosts: data.estimate?.feeCosts ?? [],
-    tool: data.tool
-  };
-}
-async function bridgeToEthereum(sourceChain, token, amount, toToken, dryRun) {
-  ensureMainnet();
-  const rt = getRuntime();
-  const addr = rt.getAddress();
-  const cfg = L2_CHAINS[sourceChain];
-  const fromToken = tokenAddress(sourceChain, token);
-  const toAddr = toTokenAddress(toToken);
-  const fromAmount = parseEther(amount).toString();
-  const shouldDryRun = rt.config.mode === "simulation" ? dryRun !== false : !!dryRun;
-  const url = `${LIFI_BASE}/quote?fromChain=${cfg.chainId}&toChain=1&fromToken=${fromToken}&toToken=${toAddr}&fromAmount=${fromAmount}&fromAddress=${addr}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`LI.FI quote failed (${res.status}): ${body}`);
-  }
-  const data = await res.json();
-  const txReq = data.transactionRequest;
-  const quote = {
-    sourceChain: cfg.name,
-    token,
-    amount,
-    toToken: toToken ?? "ETH",
-    toAmount: formatEther(BigInt(data.estimate?.toAmount ?? "0")),
-    estimatedDuration: `${Math.ceil((data.estimate?.executionDuration ?? 0) / 60)} min`,
-    tool: data.tool
-  };
-  if (shouldDryRun) {
-    return { simulated: true, mode: rt.config.mode, ...quote };
-  }
-  const wallet = rt.getL2Wallet(sourceChain);
-  const client = rt.getL2PublicClient(sourceChain);
-  if (token === "wstETH" && txReq.to) {
-    const allowance = await client.readContract({
-      address: cfg.wstETH,
-      abi: ERC20_ABI,
-      functionName: "allowance",
-      args: [addr, txReq.to]
-    });
-    if (allowance < BigInt(fromAmount)) {
-      const approveTx = await wallet.writeContract({
-        address: cfg.wstETH,
-        abi: ERC20_ABI,
-        functionName: "approve",
-        args: [txReq.to, BigInt(fromAmount)]
-      });
-      await client.waitForTransactionReceipt({ hash: approveTx });
-    }
-  }
-  const hash = await wallet.sendTransaction({
-    to: txReq.to,
-    data: txReq.data,
-    value: txReq.value ? BigInt(txReq.value) : 0n,
-    gas: txReq.gasLimit ? BigInt(txReq.gasLimit) : void 0,
-    chain: void 0
-  });
-  return {
-    simulated: false,
-    mode: rt.config.mode,
-    ...quote,
-    txHash: hash,
-    note: "Bridge submitted. Use get_bridge_status to track progress (may take 1-20 min)."
-  };
-}
-async function getBridgeStatus(txHash, sourceChain) {
-  ensureMainnet();
-  const cfg = L2_CHAINS[sourceChain];
-  const url = `${LIFI_BASE}/status?txHash=${txHash}&fromChain=${cfg.chainId}&toChain=1`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`LI.FI status failed (${res.status}): ${body}`);
-  }
-  const data = await res.json();
-  return {
-    txHash,
-    sourceChain: cfg.name,
-    status: data.status,
-    substatus: data.substatus ?? null,
-    sending: data.sending ? { txHash: data.sending.txHash, amount: data.sending.amount } : null,
-    receiving: data.receiving ? { txHash: data.receiving.txHash, amount: data.receiving.amount } : null
-  };
 }
 
 // src/chat/tools.ts
@@ -590,6 +458,57 @@ var TOOL_DEFS = [
         webhook_url: { type: "string", description: "Webhook URL for HTTP POST notifications" }
       }
     }
+  },
+  {
+    name: "get_total_position",
+    description: "Aggregated cross-chain position: ETH, stETH, wstETH across Ethereum + Base + Arbitrum, all converted to ETH equivalent.",
+    parameters: {
+      type: "object",
+      properties: {
+        address: { type: "string", description: "Ethereum address (optional)" }
+      }
+    }
+  },
+  {
+    name: "get_bounds",
+    description: "Get current policy bounds (max stake per tx, daily limit, min ETH reserve, governance auto-vote).",
+    parameters: { type: "object", properties: {} }
+  },
+  {
+    name: "set_bounds",
+    description: "Update policy bounds that gate write operations.",
+    parameters: {
+      type: "object",
+      properties: {
+        maxStakePerTx: { type: "number", description: "Max ETH per single stake" },
+        maxDailyStake: { type: "number", description: "Max ETH staked per day" },
+        minEthReserve: { type: "number", description: "Min ETH to keep unstaked for gas" },
+        autoRestakeThreshold: { type: "number", description: "Auto-restake rewards threshold in ETH" },
+        governanceAutoVote: { type: "boolean", description: "Allow agent to auto-vote on proposals" }
+      }
+    }
+  },
+  {
+    name: "get_trade_history",
+    description: "Query the activity ledger with filters.",
+    parameters: {
+      type: "object",
+      properties: {
+        tool: { type: "string", description: "Filter by tool name (e.g. stake_eth)" },
+        since: { type: "string", description: "ISO date to filter from (e.g. 2026-01-01)" },
+        limit: { type: "number", description: "Max results (default 50)" }
+      }
+    }
+  },
+  {
+    name: "get_staking_summary",
+    description: "Aggregate stats from the activity ledger: total operations, staked ETH, errors.",
+    parameters: {
+      type: "object",
+      properties: {
+        since: { type: "string", description: "ISO date to filter from (optional)" }
+      }
+    }
   }
 ];
 async function executeTool(name, args) {
@@ -665,6 +584,30 @@ async function executeTool(name, args) {
       case "configure_alert_channels":
         result = configureAlertChannels(args);
         break;
+      case "get_total_position":
+        result = await getTotalPosition(args.address);
+        break;
+      case "get_bounds":
+        result = loadBounds();
+        break;
+      case "set_bounds": {
+        const current = loadBounds();
+        const patch = args;
+        if (patch.maxStakePerTx !== void 0) current.maxStakePerTx = patch.maxStakePerTx;
+        if (patch.maxDailyStake !== void 0) current.maxDailyStake = patch.maxDailyStake;
+        if (patch.minEthReserve !== void 0) current.minEthReserve = patch.minEthReserve;
+        if (patch.autoRestakeThreshold !== void 0) current.autoRestakeThreshold = patch.autoRestakeThreshold;
+        if (patch.governanceAutoVote !== void 0) current.governanceAutoVote = patch.governanceAutoVote;
+        saveBounds(current);
+        result = current;
+        break;
+      }
+      case "get_trade_history":
+        result = queryLedger({ tool: args.tool, since: args.since, limit: args.limit });
+        break;
+      case "get_staking_summary":
+        result = ledgerStats(args.since);
+        break;
       default:
         return `Unknown tool: ${name}`;
     }
@@ -672,6 +615,50 @@ async function executeTool(name, args) {
   } catch (err) {
     return `Error: ${err.message}`;
   }
+}
+
+// src/bounds/enforce.ts
+var STAKE_TOOLS = /* @__PURE__ */ new Set(["stake_eth", "bridge_to_ethereum"]);
+async function checkBounds(toolName, args) {
+  const bounds = loadBounds();
+  const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  if (bounds.lastResetDate !== today) {
+    bounds.dailyStaked = 0;
+    bounds.lastResetDate = today;
+    saveBounds(bounds);
+  }
+  if (toolName === "cast_vote" && !bounds.governanceAutoVote) {
+    return { allowed: false, reason: `Governance auto-vote is disabled. Set bounds: governanceAutoVote = true` };
+  }
+  if (STAKE_TOOLS.has(toolName)) {
+    const amount = parseFloat(args.amount_eth ?? args.amount ?? "0");
+    if (isNaN(amount) || amount <= 0) return { allowed: true };
+    if (amount > bounds.maxStakePerTx) {
+      return { allowed: false, reason: `Amount ${amount} ETH exceeds max per tx (${bounds.maxStakePerTx} ETH)` };
+    }
+    if (bounds.dailyStaked + amount > bounds.maxDailyStake) {
+      return { allowed: false, reason: `Would exceed daily limit: staked today ${bounds.dailyStaked.toFixed(4)} + ${amount} > ${bounds.maxDailyStake} ETH` };
+    }
+    try {
+      const bal = await getBalance();
+      const ethBal = parseFloat(bal.balances.eth);
+      if (ethBal - amount < bounds.minEthReserve) {
+        return { allowed: false, reason: `Would leave only ${(ethBal - amount).toFixed(4)} ETH, below reserve of ${bounds.minEthReserve} ETH` };
+      }
+    } catch {
+    }
+  }
+  return { allowed: true };
+}
+function recordStake(amount) {
+  const bounds = loadBounds();
+  const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  if (bounds.lastResetDate !== today) {
+    bounds.dailyStaked = 0;
+    bounds.lastResetDate = today;
+  }
+  bounds.dailyStaked += amount;
+  saveBounds(bounds);
 }
 
 // src/chat/session.ts
@@ -698,23 +685,22 @@ function ln(text = "") {
 }
 function saveTrade(toolName, args, result) {
   try {
-    const tradesDir = path.join(process.cwd(), "trades");
-    if (!fs.existsSync(tradesDir)) fs.mkdirSync(tradesDir, { recursive: true });
-    const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-    const file = path.join(tradesDir, `${today}.jsonl`);
-    const record = JSON.stringify({
-      ts: (/* @__PURE__ */ new Date()).toISOString(),
+    let txHash;
+    let amount;
+    try {
+      const parsed = JSON.parse(result);
+      txHash = parsed.txHash ?? parsed.tx_hash;
+      amount = args.amount_eth ?? args.amount_steth ?? args.amount;
+    } catch {
+    }
+    logEntry({
       tool: toolName,
       args,
-      result: (() => {
-        try {
-          return JSON.parse(result);
-        } catch {
-          return result;
-        }
-      })()
+      result,
+      tx_hash: txHash,
+      amount,
+      status: "ok"
     });
-    fs.appendFileSync(file, record + "\n");
   } catch {
   }
 }
@@ -740,11 +726,23 @@ async function startChatSession(cfg) {
     ln(`${RE}No AI provider configured. Run: moly setup${R}`);
     process.exit(1);
   }
+  try {
+    initLedger();
+  } catch {
+  }
   const { provider, apiKey, model } = cfg.ai;
+  let skillContext = "";
+  try {
+    const skillPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../lido.skill.md");
+    if (fs.existsSync(skillPath)) {
+      skillContext = fs.readFileSync(skillPath, "utf-8") + "\n\n";
+    }
+  } catch {
+  }
   const messages = [
     {
       role: "user",
-      content: `You are Moly, a terminal assistant for Lido Finance on ${cfg.network}. Mode: ${cfg.mode} (${cfg.mode === "simulation" ? "dry-run, nothing broadcast" : "LIVE - real on-chain transactions"}). Chain scope: ${cfg.chainScope ?? "ethereum"}. You can only do what your tools support: staking ETH, withdrawals, wrap/unwrap stETH/wstETH, balances, rewards, Lido DAO governance${cfg.chainScope === "all" ? ", and L2 bridging from Base/Arbitrum to Ethereum via LI.FI" : ""}. ${cfg.chainScope === "all" ? "If the user wants to stake ETH from Base or Arbitrum, first check their L2 balance with get_l2_balance, then bridge to Ethereum with bridge_to_ethereum, then after bridging completes use stake_eth. Bridge takes 1-20 min, tell user to check with get_bridge_status. " : ""}If asked about anything outside those tools (e.g. Lido Vaults, validators, node operators, DeFi integrations), say clearly and briefly that it is not supported. IMPORTANT: This is a terminal. Never use markdown. No **bold**, no bullet points, no headers, no backticks. Plain text only. Be concise. For live transactions always confirm first.`
+      content: skillContext + `You are Moly, a terminal assistant for Lido Finance on ${cfg.network}. Mode: ${cfg.mode} (${cfg.mode === "simulation" ? "dry-run, nothing broadcast" : "LIVE - real on-chain transactions"}). Chain scope: ${cfg.chainScope ?? "ethereum"}. You can only do what your tools support: staking ETH, withdrawals, wrap/unwrap stETH/wstETH, balances, rewards, Lido DAO governance${cfg.chainScope === "all" ? ", and L2 bridging from Base/Arbitrum to Ethereum via LI.FI" : ""}. ${cfg.chainScope === "all" ? "If the user wants to stake ETH from Base or Arbitrum, first check their L2 balance with get_l2_balance, then bridge to Ethereum with bridge_to_ethereum, then after bridging completes use stake_eth. Bridge takes 1-20 min, tell user to check with get_bridge_status. " : ""}If asked about anything outside those tools (e.g. Lido Vaults, validators, node operators, DeFi integrations), say clearly and briefly that it is not supported. IMPORTANT: This is a terminal. Never use markdown. No **bold**, no bullet points, no headers, no backticks. Plain text only. Be concise. For live transactions always confirm first.`
     },
     {
       role: "assistant",
@@ -753,8 +751,8 @@ async function startChatSession(cfg) {
   ];
   printBanner(cfg);
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const prompt = () => new Promise((resolve, reject) => {
-    rl.question(`${B}${BL}you${R} \u203A `, resolve);
+  const prompt = () => new Promise((resolve2, reject) => {
+    rl.question(`${B}${BL}you${R} \u203A `, resolve2);
     rl.once("close", () => reject(new Error("closed")));
   });
   while (true) {
@@ -780,10 +778,27 @@ async function startChatSession(cfg) {
           const toolResults = [];
           for (const tc of response.toolCalls) {
             ln(`${D}  \u21B3  ${MA}${tc.name}${R}${D} ${JSON.stringify(tc.args)}${R}`);
+            if (WRITE_TOOLS.has(tc.name)) {
+              try {
+                const check = await checkBounds(tc.name, tc.args);
+                if (!check.allowed) {
+                  ln(`${RE}  \u2715  BLOCKED: ${check.reason}${R}`);
+                  toolResults.push(makeToolResultMessage(provider, tc.id, tc.name, JSON.stringify({ blocked: true, reason: check.reason })));
+                  continue;
+                }
+              } catch {
+              }
+            }
             const result = await executeTool(tc.name, tc.args);
             ln(`${D}     ${result.slice(0, 300)}${result.length > 300 ? "\u2026" : ""}${R}`);
             if (WRITE_TOOLS.has(tc.name)) {
               saveTrade(tc.name, tc.args, result);
+              if (tc.name === "stake_eth" && tc.args.amount_eth) {
+                try {
+                  recordStake(parseFloat(tc.args.amount_eth));
+                } catch {
+                }
+              }
             }
             toolResults.push(makeToolResultMessage(provider, tc.id, tc.name, result));
           }

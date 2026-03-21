@@ -6,12 +6,14 @@ const VALID_CONDITIONS: AlertConditionType[] = [
   'reward_rate_below', 'reward_rate_above',
   'withdrawal_ready', 'proposal_new',
   'conversion_rate_above', 'conversion_rate_below',
+  'reward_delta', 'governance_expiring',
 ];
 
 const NEEDS_THRESHOLD = new Set([
   'balance_below', 'balance_above',
   'reward_rate_below', 'reward_rate_above',
   'conversion_rate_above', 'conversion_rate_below',
+  'reward_delta',
 ]);
 
 export function setAlert(params: {

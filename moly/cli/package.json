@@ -23,6 +23,7 @@
     "@clack/prompts": "^0.9.1",
     "@lidofinance/lido-ethereum-sdk": "^4.7.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "better-sqlite3": "^11.7.0",
     "viem": "^2.47.4",
     "zod": "^3.24.0"
   },
@@ -30,6 +31,7 @@
     "@open-wallet-standard/core": "^0.1.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^20",
     "tsup": "^8.4.0",
     "typescript": "^5"

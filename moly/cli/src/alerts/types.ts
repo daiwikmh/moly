@@ -6,7 +6,9 @@ export type AlertConditionType =
   | 'withdrawal_ready'
   | 'proposal_new'
   | 'conversion_rate_above'
-  | 'conversion_rate_below';
+  | 'conversion_rate_below'
+  | 'reward_delta'
+  | 'governance_expiring';
 
 export type AlertChannel = 'telegram' | 'webhook';
 
@@ -23,4 +25,8 @@ export interface Alert {
 export interface AlertsFile {
   alerts: Alert[];
   lastProposalCount?: number;
+  lastRewardBalance?: string;
+  daemonPid?: number;
+  daemonStartedAt?: string;
+  lastCheckAt?: string;
 }

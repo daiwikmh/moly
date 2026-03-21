@@ -2,7 +2,7 @@
 import {
   loadConfig,
   updateConfig
-} from "./chunk-ELH5VHWX.js";
+} from "./chunk-TJ66OXD4.js";
 
 // src/alerts/store.ts
 import { existsSync, readFileSync, writeFileSync, chmodSync } from "fs";
