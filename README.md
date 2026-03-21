@@ -10,7 +10,7 @@ A complete platform for AI agents to interact with the [Lido](https://lido.fi) l
 
 | | What | For who |
 |---|---|---|
-| [`@moly/lido`](#-cli-package-molylido) | `npx @moly/lido` — zero-config MCP server | Any developer with Claude Desktop, Cursor, or Windsurf |
+| [`@moly-mcp/lido`](#-cli-package-molylido) | `npx @moly-mcp/lido` — zero-config MCP server | Any developer with Claude Desktop, Cursor, or Windsurf |
 | [MCP Server](#-mcp-server-stdio) | Bun-based stdio MCP server (13 tools) | Developers embedding Lido in custom agent setups |
 | [Dashboard](#-dashboard) | Next.js agentic chat UI with dual MCP interface | End users who want a web interface |
 
@@ -51,15 +51,15 @@ Mode and Network are fully independent — you can simulate on mainnet or go liv
 - **5-step tool chaining** — the AI can call up to 5 tools sequentially to answer complex queries
 - **12-second timeout** per tool with safe error wrapping — a failing tool never crashes the stream
 
-### Live Sidebar Dashboard
+### OWS Integration
 
-Collapsible right panel (320px) with real-time data:
+Built-in support for the [Open Wallet Standard](https://openwallet.sh) as a secure key backend:
 
-- **Address Tracker** — paste any Ethereum address to see live ETH/stETH/wstETH balances
-- **Protocol Stats** — total staked ETH, stETH/wstETH conversion rate, current network
-- **Governance Panel** — last 5 DAO proposals with status badges (Open/Executed/Closed), yea/nay percentages, start dates
-- **30-second auto-refresh** — data polls automatically
-- **Loading skeletons** while fetching
+- **Encrypted vault** — private keys stored in `~/.ows/wallets/` with AES-256-GCM encryption at rest
+- **Zero key exposure** — keys decrypted only at signing time, never visible to agents or LLMs
+- **Multi-wallet** — named wallets, pick which one to use during setup
+- **Fallback** — raw private key (chmod 600) still supported for quick setups
+- **Optional dependency** — OWS is not required, install only if you want encrypted key storage
 
 ### In-App Documentation
 
@@ -74,12 +74,12 @@ Collapsible right panel (320px) with real-time data:
 
 ---
 
-## CLI Package (`@moly/lido`)
+## CLI Package (`@moly-mcp/lido`)
 
 The fastest way to get started. Runs an interactive setup wizard on first launch, stores config locally (`~/.moly/config.json` with chmod 600), and starts a stdio MCP server.
 
 ```bash
-npx @moly/lido
+npx @moly-mcp/lido
 ```
 
 The wizard asks for:
@@ -93,37 +93,19 @@ The wizard asks for:
 
 | Command | Description |
 |---|---|
-| `npx @moly/lido` | First run: wizard then server. After: server directly |
+| `npx @moly-mcp/lido` | First run: wizard then server. After: server directly |
 | `moly setup` | Re-run the full setup wizard |
 | `moly config` | Print current config (keys redacted) |
 | `moly reset` | Delete config and start fresh |
-| `npx @moly/lido --server` | Force-start MCP server (use in AI client configs) |
+| `npx @moly-mcp/lido --server` | Force-start MCP server (use in AI client configs) |
 
 ### AI Client Integration
 
-**Claude Desktop** — add to `claude_desktop_config.json`:
+Add to your MCP client config (Claude Desktop, Cursor, Windsurf):
 ```json
 {
   "mcpServers": {
-    "moly": { "command": "npx", "args": ["@moly/lido", "--server"] }
-  }
-}
-```
-
-**Cursor** — add to `.cursor/mcp.json`:
-```json
-{
-  "mcpServers": {
-    "moly": { "command": "npx", "args": ["@moly/lido", "--server"] }
-  }
-}
-```
-
-**Windsurf** — add to `~/.codeium/windsurf/mcp_config.json`:
-```json
-{
-  "mcpServers": {
-    "moly": { "command": "npx", "args": ["@moly/lido", "--server"] }
+    "moly": { "command": "npx", "args": ["@moly-mcp/lido", "--server"] }
   }
 }
 ```
@@ -166,7 +148,7 @@ bun install && bun run dev
 
 ## Dashboard
 
-Next.js agentic chat interface with dual MCP architecture. Two-panel layout — chat on the left, collapsible sidebar with live on-chain data on the right.
+Next.js agentic chat UI with dual MCP architecture. Serves as both a web chat interface and an MCP-over-HTTP endpoint (`/api/mcp`) simultaneously.
 
 ```bash
 cp .env.example .env.local
@@ -175,18 +157,6 @@ bun install && bun run dev
 ```
 
 Open http://localhost:3000
-
-### Key Features
-
-- **Dual interface** — serves as both web chat UI and MCP server endpoint simultaneously
-- **Two independent toggles** — Mode (Simulation/Live) and Network (Hoodi/Mainnet) operate independently
-- **Agentic chat** — AI with 13 Lido tools, streaming responses, structured result cards
-- **Live sidebar** — address tracker, balances, protocol stats, governance proposals (30s auto-refresh)
-- **In-app docs** — 19+ pages with code samples, guides, and copy-to-clipboard code blocks
-- **Dynamic config injection** — switching mode/network mid-conversation notifies the AI via system message
-- **Tool result rendering** — custom cards for balances (3-column grid), proposals (status badges + vote bars), simulations (gas estimates + notes)
-
-> **Source:** [`app/`](https://github.com/daiwikmh/moly/tree/main/moly/app) — [`page.tsx`](https://github.com/daiwikmh/moly/blob/main/moly/app/page.tsx), [`api/chat/route.ts`](https://github.com/daiwikmh/moly/blob/main/moly/app/api/chat/route.ts), [`api/mcp/`](https://github.com/daiwikmh/moly/tree/main/moly/app/api/mcp), [`components/chat/`](https://github.com/daiwikmh/moly/tree/main/moly/app/components/chat), [`components/sidebar/`](https://github.com/daiwikmh/moly/tree/main/moly/app/components/sidebar) | [`lib/lido.ts`](https://github.com/daiwikmh/moly/blob/main/moly/lib/lido.ts), [`lib/lido-config.ts`](https://github.com/daiwikmh/moly/blob/main/moly/lib/lido-config.ts), [`lib/docs-content.tsx`](https://github.com/daiwikmh/moly/blob/main/moly/lib/docs-content.tsx)
 
 ---
 
@@ -234,97 +204,18 @@ In simulation mode, `dry_run` defaults to `true` — nothing is ever broadcast u
 
 ---
 
-## Architecture
+## Signing Flow
 
-```
-moly/
-├── app/                              # Next.js 16 dashboard
-│   ├── api/
-│   │   ├── chat/route.ts             # AI chat endpoint (Vercel AI SDK v6 → OpenRouter)
-│   │   ├── lido/route.ts             # REST API for sidebar data
-│   │   └── mcp/                      # MCP-over-HTTP endpoint (dual interface)
-│   ├── components/
-│   │   ├── chat/
-│   │   │   ├── ChatPanel.tsx         # Chat UI with streaming + tool results
-│   │   │   └── ToolResultCard.tsx    # Structured rendering per tool type
-│   │   ├── sidebar/
-│   │   │   └── Sidebar.tsx           # Balances, stats, governance panel
-│   │   └── docs/
-│   │       └── CopyButton.tsx        # Copy-to-clipboard for code blocks
-│   ├── context/ModeContext.tsx       # Mode + Network + ChainId state
-│   ├── docs/[[...slug]]/             # In-app documentation (19+ pages)
-│   ├── hooks/useLido.ts              # Data fetching hook (30s auto-refresh)
-│   └── page.tsx                      # Two-panel layout with toggles
-├── cli/                              # @moly/lido — npx CLI package
-│   └── src/
-│       ├── bin.ts                    # CLI entry (setup | config | reset | --server)
-│       ├── setup/wizard.ts           # Interactive wizard (@clack/prompts)
-│       ├── config/store.ts           # ~/.moly/config.json (chmod 600)
-│       ├── server/
-│       │   ├── index.ts              # MCP stdio server (15 tools)
-│       │   └── runtime.ts            # SDK + wallet + config lifecycle
-│       └── tools/                    # balance, stake, unstake, wrap, governance, settings
-├── lib/
-│   ├── lido.ts                       # 13 Lido tool functions (raw viem calls)
-│   ├── lido-config.ts                # Chain definitions, contract addresses, RPC config
-│   └── docs-content.tsx              # Documentation pages (React components)
-├── mcp/                              # Standalone MCP server (Bun + Lido SDK)
-│   └── src/
-│       ├── index.ts                  # Server entry + 13 tool registrations
-│       ├── config.ts                 # Mode/chain config from env vars
-│       ├── sdk.ts                    # LidoSDK singleton
-│       ├── wallet.ts                 # Private key wallet
-│       └── tools/                    # balance, stake, unstake, wrap, governance
-└── public/
-    ├── llms.txt                      # LLM-friendly project summary
-    └── llms-full.txt                 # Full LLM context document
-```
-
-### Signing Flow
-
-```
-                          +---------------------+
-                          |     AI Agent         |
-                          | (OpenRouter, Claude, |
-                          |  Cursor, Windsurf)   |
-                          +----------+----------+
-                                     |
-                              MCP / stdio
-                                     |
-                          +----------v----------+
-                          |   Moly MCP Server    |
-                          |   (15 Lido tools)    |
-                          +----------+----------+
-                                     |
-                            resolveAccount()
-                           /                  \
-               +-----------+--+          +-----+-----------+
-               |  OWS Vault   |          | Raw Private Key |
-               | (~/.ows/)    |          | (~/.moly/)      |
-               |              |          |                 |
-               | AES-256-GCM  |          | chmod 600       |
-               | encrypted    |          | plaintext JSON  |
-               +------+-------+          +-------+---------+
-                       \                        /
-                        +----------+-----------+
-                                   |
-                          privateKeyToAccount()
-                                   |
-                          +--------v--------+
-                          |  viem Wallet     |
-                          |  Client          |
-                          +--------+--------+
-                                   |
-                          +--------v--------+
-                          |   Lido SDK       |
-                          | stake / unstake  |
-                          | wrap / govern    |
-                          +--------+--------+
-                                   |
-                          +--------v--------+
-                          |  Ethereum RPC    |
-                          | (Mainnet/Hoodi)  |
-                          +-----------------+
+```mermaid
+flowchart TD
+    A[AI Agent\nOpenRouter / Claude / Cursor] -->|MCP / stdio| B[Moly MCP Server\n15 Lido tools]
+    B --> C{resolveAccount}
+    C -->|encrypted| D[OWS Vault\n~/.ows/ AES-256-GCM]
+    C -->|plaintext| E[Raw Key\n~/.moly/ chmod 600]
+    D --> F[viem Account]
+    E --> F
+    F --> G[Lido SDK]
+    G -->|stake / unstake / wrap / govern| H[Ethereum RPC\nMainnet / Hoodi]
 ```
 
 ---
@@ -344,7 +235,7 @@ moly/
 
 | Component | Stack |
 |---|---|
-| CLI (`@moly/lido`) | TypeScript, tsup, @clack/prompts, @modelcontextprotocol/sdk, @open-wallet-standard/core (optional) |
+| CLI (`@moly-mcp/lido`) | TypeScript, tsup, @clack/prompts, @modelcontextprotocol/sdk, @open-wallet-standard/core (optional) |
 | MCP Server | Bun, TypeScript, @lidofinance/lido-ethereum-sdk, viem |
 | Dashboard | Next.js 16, Tailwind CSS, Vercel AI SDK v6, OpenRouter |
 | On-chain | Lido stETH/wstETH, Aragon Voting, Ethereum Mainnet + Hoodi Testnet |
