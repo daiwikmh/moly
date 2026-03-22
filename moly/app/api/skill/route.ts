@@ -3,7 +3,7 @@ import { join } from 'path';
 
 export async function GET() {
   try {
-    const skillPath = join(process.cwd(), '..', '..', 'skill.md');
+    const skillPath = join(process.cwd(), '..', 'cli', 'lido.skill.md');
     const content = readFileSync(skillPath, 'utf-8');
 
     return new Response(content, {
