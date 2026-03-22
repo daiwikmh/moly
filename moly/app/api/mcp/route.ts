@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import { IncomingMessage, ServerResponse } from "node:http";
@@ -223,40 +222,7 @@ function parseConfig(req: Request) {
   return { mode, network, chainId };
 }
 
-// SSE transport — used by Claude Desktop and older MCP clients
-export async function GET(req: Request) {
-  const { mode, network, chainId } = parseConfig(req);
-  const server = createServer(mode, network, chainId);
-
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-  const encoder = new TextEncoder();
-
-  const nodeRes = {
-    write: (chunk: string) => { writer.write(encoder.encode(chunk)); return true; },
-    end: () => writer.close(),
-    writeHead: () => {},
-    setHeader: () => {},
-    on: () => {},
-    once: () => {},
-    emit: () => {},
-    flushHeaders: () => {},
-  };
-
-  const transport = new SSEServerTransport("/api/mcp", nodeRes as any);
-  await server.connect(transport);
-
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
-}
-
-// Streamable HTTP — used by Claude Code and newer MCP clients
+// Streamable HTTP POST — handles all MCP JSON-RPC messages
 export async function POST(req: Request) {
   const { mode, network, chainId } = parseConfig(req);
   const server = createServer(mode, network, chainId);
@@ -264,11 +230,16 @@ export async function POST(req: Request) {
   await server.connect(transport);
 
   const body = await req.text();
+  const url = new URL(req.url);
+
   const socket = new Socket();
   const nodeReq = new IncomingMessage(socket);
   nodeReq.method = "POST";
-  nodeReq.url = new URL(req.url).pathname;
-  nodeReq.headers = Object.fromEntries(req.headers.entries());
+  nodeReq.url = url.pathname + url.search;
+  // Force the accept header so the SDK doesn't reject
+  const headers = Object.fromEntries(req.headers.entries());
+  headers["accept"] = "application/json, text/event-stream";
+  nodeReq.headers = headers;
   nodeReq.push(body);
   nodeReq.push(null);
 
@@ -289,9 +260,9 @@ export async function POST(req: Request) {
     return origWriteHead(code, ...args);
   } as any;
 
-  nodeRes.write = function (chunk: any, ...args: any[]) {
+  nodeRes.write = function (chunk: any) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    return (nodeRes as any).__proto__.write.call(nodeRes, chunk, ...args);
+    return true;
   } as any;
 
   return new Promise<Response>((resolve) => {
@@ -304,6 +275,22 @@ export async function POST(req: Request) {
     } as any;
 
     transport.handleRequest(nodeReq, nodeRes, JSON.parse(body || "{}"));
+  });
+}
+
+// GET — discovery endpoint
+export async function GET() {
+  return Response.json({
+    name: "moly-lido",
+    version: "1.0.0",
+    description: "Lido staking MCP server with 17 tools. Defaults to simulation mode on Hoodi testnet.",
+    transport: "streamable-http",
+    configuration: {
+      headers: {
+        "x-lido-mode": "simulation | live (default: simulation)",
+        "x-lido-network": "testnet | mainnet (default: testnet)",
+      },
+    },
   });
 }
 
