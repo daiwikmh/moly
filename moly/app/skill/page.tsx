@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default function SkillPage() {
-  const skillPath = join(process.cwd(), '..', '..', 'skill.md');
+  const skillPath = join(process.cwd(), 'skill.md');
   const content = readFileSync(skillPath, 'utf-8');
 
   return (
