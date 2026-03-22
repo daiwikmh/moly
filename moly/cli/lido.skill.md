@@ -18,6 +18,59 @@ Lido is the largest liquid staking protocol on Ethereum. Users deposit ETH and r
 - Network set to `mainnet` (production) or `hoodi` (testnet)
 - For governance: LDO tokens at the snapshot block
 
+## Wallet & Configuration
+
+### Deployment modes
+
+There are three ways to use Moly. Each has different wallet access:
+
+| Mode | Wallet Access | Write Ops |
+|------|--------------|-----------|
+| CLI (`npx @moly-mcp/lido`) | Full — private key via setup wizard or OWS vault | Yes, live or simulation |
+| MCP server via CLI (`--server`) | Full — same private key configured in CLI | Yes, live or simulation |
+| Hosted HTTP endpoint (`https://moly-lido.vercel.app/api/mcp`) | None — no private key on server | Simulation only (dry_run forced) |
+
+If you are an agent using the hosted endpoint, all write tools return simulated estimates. No real transactions can be broadcast. To execute real transactions, the user must run `npx @moly-mcp/lido` locally and point you at the local MCP server.
+
+### Setting up via CLI (for real transactions)
+
+The user runs the setup wizard once:
+
+```
+npx @moly-mcp/lido
+```
+
+This prompts for: network, mode, RPC URL, private key (or OWS encrypted vault), and AI provider. Config is saved to `~/.moly/config.json` (chmod 600).
+
+To add Moly as a local MCP server in Claude Desktop / Cursor / Windsurf after setup:
+
+```json
+{
+  "mcpServers": {
+    "moly": {
+      "command": "npx",
+      "args": ["@moly-mcp/lido", "--server"]
+    }
+  }
+}
+```
+
+### Changing settings mid-session
+
+Use `update_settings` to switch network or mode without restarting:
+
+```
+update_settings({ network: "mainnet", mode: "live" })
+update_settings({ network: "hoodi", mode: "simulation" })
+update_settings({ rpc: "https://my-rpc.example.com" })
+```
+
+Private key and API keys cannot be changed via tool — only via `moly setup`.
+
+### Checking current config
+
+Use `get_settings` to see active network, mode, RPC, and AI model. Private key and API keys are never exposed.
+
 ## Key Concepts
 
 ### Rebasing Mechanics
