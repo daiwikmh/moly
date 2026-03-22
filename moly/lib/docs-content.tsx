@@ -23,19 +23,19 @@ export const NAV: DocSection[] = [
     ],
   },
   {
-    title: "MCP Server",
-    pages: [
-      { slug: "mcp-server", title: "Overview" },
-      { slug: "mcp-server/connect", title: "Connect Any Agent" },
-      { slug: "mcp-server/code-samples", title: "Code Samples" },
-    ],
-  },
-  {
     title: "CLI Package",
     pages: [
       { slug: "cli", title: "npx @moly-mcp/lido" },
       { slug: "cli/setup", title: "Setup Wizard" },
       { slug: "cli/configuration", title: "Configuration Reference" },
+    ],
+  },
+  {
+    title: "MCP Server",
+    pages: [
+      { slug: "mcp-server", title: "Overview" },
+      { slug: "mcp-server/connect", title: "Connect Any Agent" },
+      { slug: "mcp-server/code-samples", title: "Code Samples" },
     ],
   },
   {

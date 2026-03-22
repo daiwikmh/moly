@@ -23,19 +23,6 @@ const SIDEBAR: Array<{
     ],
   },
   {
-    label: "MCP Server",
-    items: [
-      {
-        title: "Overview",
-        href: "/docs/mcp-server",
-        children: [
-          { title: "Connect Any Agent", href: "/docs/mcp-server/connect" },
-          { title: "Code Samples", href: "/docs/mcp-server/code-samples" },
-        ],
-      },
-    ],
-  },
-  {
     label: "CLI Package",
     items: [
       {
@@ -44,6 +31,19 @@ const SIDEBAR: Array<{
         children: [
           { title: "Setup Wizard", href: "/docs/cli/setup" },
           { title: "Configuration Reference", href: "/docs/cli/configuration" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "MCP Server",
+    items: [
+      {
+        title: "Overview",
+        href: "/docs/mcp-server",
+        children: [
+          { title: "Connect Any Agent", href: "/docs/mcp-server/connect" },
+          { title: "Code Samples", href: "/docs/mcp-server/code-samples" },
         ],
       },
     ],
@@ -91,7 +91,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         <div className="docs-topnav-inner">
           <div className="docs-topnav-left">
             <Link href="/" className="docs-topnav-logo">
-              <Image src="/molylogo.png" alt="Moly" width={22} height={22} />
+              <Image src="/molylogo.png" alt="Moly" width={32} height={32} />
               <span>Moly</span>
             </Link>
             <span className="docs-topnav-sep">/</span>

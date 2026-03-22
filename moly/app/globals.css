@@ -1032,18 +1032,18 @@ body {
 
 /* Docs-scoped tokens */
 :root {
-  --docs-bg:         #000000;
-  --docs-bg-card:    #080810;
-  --docs-bg-input:   #0e0e1a;
-  --docs-border:     #1a1a2e;
+  --docs-bg:         #09090b;
+  --docs-bg-card:    #111114;
+  --docs-bg-input:   #16161a;
+  --docs-border:     #232329;
   --docs-border-glow:rgba(0, 255, 170, 0.25);
   --docs-neon:       #00ffaa;
   --docs-neon-dim:   rgba(0, 255, 170, 0.08);
   --docs-neon-glow:  0 0 12px rgba(0, 255, 170, 0.4);
   --docs-neon-glow-sm: 0 0 6px rgba(0, 255, 170, 0.25);
-  --docs-text:       #ffffff;
-  --docs-text-muted: #8888aa;
-  --docs-text-dim:   #44445a;
+  --docs-text:       #e4e4e7;
+  --docs-text-muted: #a1a1aa;
+  --docs-text-dim:   #63636e;
 }
 
 /* ── New layout (v2) — top nav + sidebar ── */
@@ -1086,11 +1086,11 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9375rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   color: var(--docs-text);
   text-decoration: none;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .docs-topnav-sep {
@@ -1099,7 +1099,7 @@ body {
 }
 
 .docs-topnav-section {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--docs-text-muted);
 }
 
@@ -1168,18 +1168,17 @@ body {
 }
 
 .docs-sidebar-label {
-  font-size: 0.6875rem;
-  font-family: var(--font-mono), monospace;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: var(--docs-text-dim);
   padding: 0.25rem 1rem 0.5rem;
 }
 
 .docs-sidebar-link {
   display: block;
-  padding: 0.375rem 0.75rem;
+  padding: 0.4375rem 0.75rem;
   border-radius: 6px;
   font-size: 0.875rem;
   color: var(--docs-text-muted);
@@ -1207,13 +1206,14 @@ body {
 
 .docs-sidebar-child {
   display: block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.3125rem 0.75rem;
   border-radius: 6px;
-  font-size: 0.75rem;
-  color: var(--docs-text-dim);
+  font-size: 0.8125rem;
+  color: var(--docs-text-muted);
   text-decoration: none;
   border-left: 2px solid transparent;
   transition: all 0.15s;
+  opacity: 0.8;
 }
 
 .docs-sidebar-child:hover {
@@ -1536,20 +1536,19 @@ body {
 }
 
 .docs-article-title {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 2.25rem;
+  font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.15;
-  color: var(--docs-neon);
-  text-shadow: var(--docs-neon-glow);
+  line-height: 1.2;
+  color: var(--docs-text);
   margin: 0;
 }
 
 .docs-article-desc {
-  font-size: 1rem;
+  font-size: 1.0625rem;
   color: var(--docs-text-muted);
-  margin-top: 0.5rem;
-  line-height: 1.5;
+  margin-top: 0.625rem;
+  line-height: 1.6;
 }
 
 /* ── Content typography ── */
@@ -1559,12 +1558,12 @@ body {
 }
 
 .docs-h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.375rem;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--docs-text);
-  margin: 2.25rem 0 0.75rem;
-  padding-top: 1.25rem;
+  margin: 2.5rem 0 0.875rem;
+  padding-top: 1.5rem;
   border-top: 1px solid var(--docs-border);
 }
 
@@ -1575,18 +1574,17 @@ body {
 }
 
 .docs-h3 {
-  font-size: 0.9375rem;
+  font-size: 1.0625rem;
   font-weight: 600;
-  color: var(--docs-neon);
-  margin: 1.5rem 0 0.5rem;
-  opacity: 0.85;
+  color: var(--docs-text);
+  margin: 1.75rem 0 0.5rem;
 }
 
 .docs-p {
-  font-size: 0.9375rem;
-  color: var(--docs-text);
-  margin: 0.75rem 0;
-  line-height: 1.7;
+  font-size: 1rem;
+  color: var(--docs-text-muted);
+  margin: 0.875rem 0;
+  line-height: 1.75;
 }
 
 .docs-ul {
@@ -1595,10 +1593,10 @@ body {
 }
 
 .docs-ul li {
-  font-size: 0.9375rem;
-  color: var(--docs-text);
-  margin-bottom: 0.375rem;
-  line-height: 1.6;
+  font-size: 1rem;
+  color: var(--docs-text-muted);
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
 }
 
 .docs-ul li::marker {
@@ -1607,6 +1605,7 @@ body {
 
 .docs-ul li strong {
   color: var(--docs-text);
+  font-weight: 500;
 }
 
 .docs-content a {
@@ -1624,12 +1623,12 @@ body {
 
 .docs-inline-code {
   font-family: var(--font-mono), monospace;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   background: var(--docs-bg-input);
   color: var(--docs-neon);
-  padding: 0.15rem 0.4rem;
+  padding: 0.125rem 0.375rem;
   border-radius: 4px;
-  border: 1px solid rgba(0, 255, 170, 0.2);
+  border: 1px solid rgba(0, 255, 170, 0.15);
 }
 
 .docs-codeblock {
@@ -1702,7 +1701,7 @@ body {
 
 .docs-codeblock code {
   font-family: var(--font-mono), monospace;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   line-height: 1.7;
   color: #a0ffd6;
 }
@@ -1713,7 +1712,7 @@ body {
   width: 100%;
   margin: 1rem 0;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   border: 1px solid var(--docs-border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -1722,19 +1721,19 @@ body {
 .docs-table th {
   text-align: left;
   font-weight: 600;
-  color: var(--docs-neon);
-  padding: 0.625rem 0.875rem;
-  border-bottom: 1px solid rgba(0, 255, 170, 0.15);
-  font-size: 0.75rem;
+  color: var(--docs-text);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--docs-border);
+  font-size: 0.8125rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  background: rgba(0, 255, 170, 0.04);
+  background: var(--docs-bg-card);
 }
 
 .docs-table td {
-  padding: 0.5rem 0.875rem;
+  padding: 0.625rem 1rem;
   border-bottom: 1px solid var(--docs-border);
-  color: var(--docs-text);
+  color: var(--docs-text-muted);
 }
 
 .docs-table tr:last-child td {
@@ -1751,11 +1750,11 @@ body {
 .docs-callout {
   display: flex;
   gap: 0.75rem;
-  padding: 0.875rem 1rem;
+  padding: 1rem 1.125rem;
   border-radius: var(--radius);
-  margin: 1rem 0;
-  font-size: 0.875rem;
-  line-height: 1.6;
+  margin: 1.25rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.65;
   border: 1px solid;
 }
 
@@ -1819,17 +1818,17 @@ body {
 }
 
 .docs-footer-label {
-  font-size: 0.625rem;
-  font-weight: 700;
+  font-size: 0.6875rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--docs-text-dim);
 }
 
 .docs-footer-title {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--docs-neon);
+  color: var(--docs-text);
 }
 
 /* ── Responsive ── */
@@ -1850,7 +1849,7 @@ body {
   }
 
   .docs-article-title {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   .docs-article-footer {

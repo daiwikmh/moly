@@ -1,6 +1,6 @@
 {
   "name": "@moly-mcp/lido",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Lido MCP Server — stake, unstake, wrap, govern. Works with Claude Desktop, Cursor, Windsurf, and any MCP client.",
   "license": "MIT",
   "type": "module",

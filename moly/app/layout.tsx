@@ -32,6 +32,15 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Moly — Lido MCP Server",
   description: "AI-native Lido staking via Model Context Protocol. Stake ETH, manage positions, and participate in DAO governance through 15 MCP tools.",
+  icons: {
+    icon: "/molylogo.png",
+    apple: "/molylogo.png",
+  },
+  openGraph: {
+    title: "Moly — Lido MCP Server",
+    description: "AI-native Lido staking via Model Context Protocol. Stake ETH, manage positions, and participate in DAO governance through 15 MCP tools.",
+    images: ["/molylogo.png"],
+  },
 };
 
 export default function RootLayout({
