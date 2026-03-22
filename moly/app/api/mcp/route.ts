@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import { IncomingMessage, ServerResponse } from "node:http";
@@ -222,128 +223,92 @@ function parseConfig(req: Request) {
   return { mode, network, chainId };
 }
 
-/**
- * Convert Web Request → Node IncomingMessage and capture ServerResponse output
- * so we can bridge Next.js App Router to the MCP SDK's Node-based transport.
- */
-async function handleWithNodeCompat(
-  webReq: Request,
-  server: McpServer,
-  transport: StreamableHTTPServerTransport,
-) {
-  const body = await webReq.text();
-  const url = new URL(webReq.url);
+// SSE transport — used by Claude Desktop and older MCP clients
+export async function GET(req: Request) {
+  const { mode, network, chainId } = parseConfig(req);
+  const server = createServer(mode, network, chainId);
 
-  // Build a minimal Node IncomingMessage
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const encoder = new TextEncoder();
+
+  const nodeRes = {
+    write: (chunk: string) => writer.write(encoder.encode(chunk)),
+    end: () => writer.close(),
+    writeHead: () => {},
+    setHeader: () => {},
+    on: () => {},
+  };
+
   const socket = new Socket();
   const nodeReq = new IncomingMessage(socket);
-  nodeReq.method = webReq.method;
-  nodeReq.url = url.pathname + url.search;
-  nodeReq.headers = Object.fromEntries(webReq.headers.entries());
-  // Push the body so the SDK can read it
+  nodeReq.method = "GET";
+  nodeReq.url = new URL(req.url).pathname;
+  nodeReq.headers = Object.fromEntries(req.headers.entries());
+  nodeReq.push(null);
+
+  const transport = new SSEServerTransport("/api/mcp", nodeRes as any);
+  await server.connect(transport);
+  await transport.handleRequest(nodeReq as any, nodeRes as any);
+
+  return new Response(readable, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+}
+
+// Streamable HTTP — used by Claude Code and newer MCP clients
+export async function POST(req: Request) {
+  const { mode, network, chainId } = parseConfig(req);
+  const server = createServer(mode, network, chainId);
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  await server.connect(transport);
+
+  const body = await req.text();
+  const socket = new Socket();
+  const nodeReq = new IncomingMessage(socket);
+  nodeReq.method = "POST";
+  nodeReq.url = new URL(req.url).pathname;
+  nodeReq.headers = Object.fromEntries(req.headers.entries());
   nodeReq.push(body);
   nodeReq.push(null);
 
-  // Create a ServerResponse that captures output
   const nodeRes = new ServerResponse(nodeReq);
-
-  // Capture the written data
   const chunks: Buffer[] = [];
   let statusCode = 200;
-  let responseHeaders: Record<string, string> = {};
-
-  // Check if this is an SSE response (the transport may set content-type to text/event-stream)
-  let isSSE = false;
+  const responseHeaders: Record<string, string> = {};
 
   const origWriteHead = nodeRes.writeHead.bind(nodeRes);
   nodeRes.writeHead = function (code: number, ...args: any[]) {
     statusCode = code;
-    // Parse headers from various arg positions
     const hdrs = typeof args[0] === "object" && !Array.isArray(args[0]) ? args[0] : args[1];
     if (hdrs) {
       for (const [k, v] of Object.entries(hdrs)) {
         responseHeaders[k.toLowerCase()] = String(v);
       }
     }
-    if (responseHeaders["content-type"]?.includes("text/event-stream")) {
-      isSSE = true;
-    }
     return origWriteHead(code, ...args);
   } as any;
 
-  const origWrite = nodeRes.write.bind(nodeRes);
   nodeRes.write = function (chunk: any, ...args: any[]) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    return origWrite(chunk, ...args);
+    return (nodeRes as any).__proto__.write.call(nodeRes, chunk, ...args);
   } as any;
-
-  const origEnd = nodeRes.end.bind(nodeRes);
 
   return new Promise<Response>((resolve) => {
     nodeRes.end = function (...args: any[]) {
-      // Capture final chunk
       if (args[0] && typeof args[0] !== "function") {
         chunks.push(Buffer.isBuffer(args[0]) ? args[0] : Buffer.from(args[0]));
       }
-      origEnd(...args);
-
-      const responseBody = Buffer.concat(chunks);
-      resolve(
-        new Response(responseBody, {
-          status: statusCode,
-          headers: responseHeaders,
-        })
-      );
+      resolve(new Response(Buffer.concat(chunks), { status: statusCode, headers: responseHeaders }));
       return nodeRes;
     } as any;
 
-    // Let the transport handle the request
     transport.handleRequest(nodeReq, nodeRes, JSON.parse(body || "{}"));
-  });
-}
-
-export async function POST(req: Request) {
-  const { mode, network, chainId } = parseConfig(req);
-
-  const server = createServer(mode, network, chainId);
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-
-  await server.connect(transport);
-
-  try {
-    return await handleWithNodeCompat(req, server, transport);
-  } finally {
-    await transport.close();
-    await server.close();
-  }
-}
-
-// Discovery endpoint — tells clients what this server offers
-export async function GET() {
-  return Response.json({
-    name: "moly-lido",
-    version: "1.0.0",
-    description:
-      "Lido staking protocol MCP server — 13 tools for balances, staking, wrapping, withdrawals, and governance. Defaults to simulation mode on Hoodi testnet.",
-    tools: 17,
-    transport: "streamable-http",
-    quickstart: {
-      config: {
-        mcpServers: {
-          moly: {
-            type: "http",
-            url: "https://your-domain.com/api/mcp",
-          },
-        },
-      },
-    },
-    configuration: {
-      headers: {
-        "x-lido-mode": "simulation | live (default: simulation)",
-        "x-lido-network": "testnet | mainnet (default: testnet)",
-        "x-lido-chain": "hoodi | ethereum (auto-set from network)",
-      },
-    },
   });
 }
 
