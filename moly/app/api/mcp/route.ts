@@ -233,23 +233,18 @@ export async function GET(req: Request) {
   const encoder = new TextEncoder();
 
   const nodeRes = {
-    write: (chunk: string) => writer.write(encoder.encode(chunk)),
+    write: (chunk: string) => { writer.write(encoder.encode(chunk)); return true; },
     end: () => writer.close(),
     writeHead: () => {},
     setHeader: () => {},
     on: () => {},
+    once: () => {},
+    emit: () => {},
+    flushHeaders: () => {},
   };
-
-  const socket = new Socket();
-  const nodeReq = new IncomingMessage(socket);
-  nodeReq.method = "GET";
-  nodeReq.url = new URL(req.url).pathname;
-  nodeReq.headers = Object.fromEntries(req.headers.entries());
-  nodeReq.push(null);
 
   const transport = new SSEServerTransport("/api/mcp", nodeRes as any);
   await server.connect(transport);
-  await transport.handleRequest(nodeReq as any, nodeRes as any);
 
   return new Response(readable, {
     headers: {
