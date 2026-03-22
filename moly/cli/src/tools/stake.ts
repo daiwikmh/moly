@@ -16,7 +16,6 @@ const REFERRAL = '0x0000000000000000000000000000000000000000' as `0x${string}`;
 export async function stakeEth(amountEth: string, dryRun?: boolean) {
   const rt = getRuntime();
   const value = parseEther(amountEth);
-  const account = rt.getAddress();
   const lidoAddress = rt.chainAddresses.stETH;
   const shouldDryRun = rt.config.mode === 'simulation' ? dryRun !== false : !!dryRun;
 
@@ -46,6 +45,7 @@ export async function stakeEth(amountEth: string, dryRun?: boolean) {
     };
   }
 
+  const account = rt.getAddress();
   const tx = await rt.sdk.stake.stakeEth({
     value,
     account: { address: account } as any,

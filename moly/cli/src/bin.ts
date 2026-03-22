@@ -27,7 +27,7 @@ async function main() {
     // ── moly config ───────────────────────────────────────────────────
     case 'config': {
       if (!configExists()) {
-        console.log('No config found. Run: npx @moly/lido');
+        console.log('No config found. Run: npx @moly-mcp/lido');
         process.exit(1);
       }
       const cfg = loadConfig();
@@ -44,7 +44,7 @@ async function main() {
         process.exit(0);
       }
       deleteConfig();
-      console.log('Config deleted. Run: npx @moly/lido  to set up again.');
+      console.log('Config deleted. Run: npx @moly-mcp/lido  to set up again.');
       break;
     }
 
@@ -255,11 +255,29 @@ async function main() {
       break;
     }
 
+    // ── moly terminal — start chat session directly ───────────────────
+    case 'terminal': {
+      if (!configExists()) {
+        const { cfg, terminalMode } = await runWizard();
+        if (terminalMode) {
+          const { startChatSession } = await import('./chat/session.js');
+          await startChatSession(cfg);
+        } else {
+          await startServer();
+        }
+      } else {
+        const cfg = loadConfig();
+        const { startChatSession } = await import('./chat/session.js');
+        await startChatSession(cfg);
+      }
+      break;
+    }
+
     // ── moly --server (force-start, used in AI client configs) ────────
     case '--server': {
       if (!configExists()) {
         process.stderr.write(
-          'ERROR: No config found. Run: npx @moly/lido  to set up first.\n'
+          'ERROR: No config found. Run: npx @moly-mcp/lido  to set up first.\n'
         );
         process.exit(1);
       }
@@ -280,7 +298,7 @@ async function main() {
       } else {
         const cfg = loadConfig();
         process.stderr.write(
-          `@moly/lido — starting MCP server (${cfg.mode} · ${cfg.network})\n`
+          `@moly-mcp/lido — starting MCP server (${cfg.mode} · ${cfg.network})\n`
         );
         await startServer();
       }

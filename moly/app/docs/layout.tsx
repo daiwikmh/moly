@@ -1,70 +1,157 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { NAV } from "@/lib/docs-content";
+
+const SIDEBAR: Array<{
+  label: string;
+  items: Array<{
+    title: string;
+    href: string;
+    children?: Array<{ title: string; href: string }>;
+  }>;
+}> = [
+  {
+    label: "Getting Started",
+    items: [
+      { title: "Overview", href: "/docs" },
+      { title: "Installation", href: "/docs/setup" },
+      { title: "Configuration", href: "/docs/configuration" },
+      { title: "Architecture", href: "/docs/architecture" },
+    ],
+  },
+  {
+    label: "MCP Server",
+    items: [
+      {
+        title: "Overview",
+        href: "/docs/mcp-server",
+        children: [
+          { title: "Connect Any Agent", href: "/docs/mcp-server/connect" },
+          { title: "Code Samples", href: "/docs/mcp-server/code-samples" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "CLI Package",
+    items: [
+      {
+        title: "npx @moly-mcp/lido",
+        href: "/docs/cli",
+        children: [
+          { title: "Setup Wizard", href: "/docs/cli/setup" },
+          { title: "Configuration Reference", href: "/docs/cli/configuration" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Tools Reference",
+    items: [
+      {
+        title: "All Tools",
+        href: "/docs/tools",
+        children: [
+          { title: "Read Tools", href: "/docs/tools/read" },
+          { title: "Write Tools", href: "/docs/tools/write" },
+          { title: "Governance", href: "/docs/tools/governance" },
+          { title: "Bridge (L2)", href: "/docs/tools/bridge" },
+          { title: "Bounds, Alerts & Ledger", href: "/docs/tools/management" },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Guides",
+    items: [
+      { title: "Stake ETH", href: "/docs/guides/stake-eth" },
+      { title: "Wrap & Unwrap", href: "/docs/guides/wrap-unwrap" },
+      { title: "Withdrawals", href: "/docs/guides/withdrawals" },
+      { title: "Governance Voting", href: "/docs/guides/governance" },
+    ],
+  },
+];
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
-    <div className="docs-layout">
-      {/* Mobile toggle */}
-      {!sidebarOpen && (
-        <button className="docs-sidebar-mobile-toggle" onClick={() => setSidebarOpen(true)}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-        </button>
-      )}
-
-      {/* Sidebar */}
-      <aside className={`docs-sidebar ${sidebarOpen ? "" : "docs-sidebar-hidden"}`}>
-        <div className="docs-sidebar-header">
-          <Link href="/" className="docs-logo">
-            <span className="docs-logo-icon">M</span>
-            <span>Moly Docs</span>
-          </Link>
-          <button className="docs-sidebar-close" onClick={() => setSidebarOpen(false)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
+    <div className="docs-layout-v2">
+      {/* Top nav */}
+      <nav className="docs-topnav">
+        <div className="docs-topnav-inner">
+          <div className="docs-topnav-left">
+            <Link href="/" className="docs-topnav-logo">
+              <Image src="/molylogo.png" alt="Moly" width={22} height={22} />
+              <span>Moly</span>
+            </Link>
+            <span className="docs-topnav-sep">/</span>
+            <span className="docs-topnav-section">Docs</span>
+          </div>
+          <div className="docs-topnav-right">
+            <a
+              href="https://www.npmjs.com/package/@moly-mcp/lido"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="docs-topnav-badge"
+            >
+              @moly-mcp/lido
+            </a>
+            <a
+              href="https://github.com/daiwikmh/moly"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="docs-topnav-gh"
+            >
+              GitHub
+            </a>
+          </div>
         </div>
+      </nav>
 
-        <nav className="docs-nav">
-          {NAV.map((section) => (
-            <div key={section.title} className="docs-nav-section">
-              <div className="docs-nav-section-title">{section.title}</div>
-              {section.pages.map((page) => {
-                const href = `/docs${page.slug ? `/${page.slug}` : ""}`;
-                const isActive = pathname === href;
+      <div className="docs-body">
+        {/* Sidebar */}
+        <aside className="docs-sidebar-v2">
+          {SIDEBAR.map((section) => (
+            <div key={section.label} className="docs-sidebar-section">
+              <div className="docs-sidebar-label">{section.label}</div>
+              {section.items.map((item) => {
+                const isActive = pathname === item.href;
+                const childActive = item.children?.some((c) => pathname === c.href);
                 return (
-                  <Link
-                    key={page.slug}
-                    href={href}
-                    className={`docs-nav-link ${isActive ? "docs-nav-link-active" : ""}`}
-                    onClick={() => {
-                      if (window.innerWidth < 768) setSidebarOpen(false);
-                    }}
-                  >
-                    {page.title}
-                  </Link>
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`docs-sidebar-link ${isActive ? "docs-sidebar-link-active" : ""}`}
+                    >
+                      {item.title}
+                    </Link>
+                    {item.children && (isActive || childActive) && (
+                      <div className="docs-sidebar-children">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={`docs-sidebar-child ${pathname === child.href ? "docs-sidebar-child-active" : ""}`}
+                          >
+                            {child.title}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
           ))}
-        </nav>
+        </aside>
 
-        <div className="docs-sidebar-footer">
-          <Link href="/" className="docs-back-link">
-            ← Back to Dashboard
-          </Link>
-        </div>
-      </aside>
-
-      {/* Content */}
-      <main className="docs-main">
-        {children}
-      </main>
+        {/* Content */}
+        <main className="docs-main-v2">{children}</main>
+      </div>
     </div>
   );
 }

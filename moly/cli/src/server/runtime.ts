@@ -2,6 +2,8 @@ import { createPublicClient, createWalletClient, http, defineChain } from 'viem'
 import { mainnet, base, arbitrum } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { LidoSDK } from '@lidofinance/lido-ethereum-sdk';
+import { createRequire } from 'module';
+const _require = createRequire(import.meta.url);
 import { loadConfig, saveConfig } from '../config/store.js';
 import { CHAIN_CONFIG, L2_CHAINS } from '../config/types.js';
 import type { MolyConfig, Network, Mode, L2Chain, ChainScope } from '../config/types.js';
@@ -53,13 +55,13 @@ function buildRuntime(): Runtime {
     if (_resolvedAccount) return _resolvedAccount;
 
     if (config.ows) {
-      let exportWallet: Function;
+      let owsSdk: any;
       try {
-        exportWallet = require('@open-wallet-standard/core').exportWallet;
+        owsSdk = _require('@open-wallet-standard/core');
       } catch {
         throw new Error('OWS SDK not installed. Run: npm install @open-wallet-standard/core');
       }
-      const exported = exportWallet(config.ows.walletName, config.ows.passphrase);
+      const exported = owsSdk.exportWallet(config.ows.walletName, config.ows.passphrase);
       const keyHex = exported.secp256k1 ?? exported;
       const pk = (keyHex.startsWith('0x') ? keyHex : '0x' + keyHex) as `0x${string}`;
       _resolvedAccount = privateKeyToAccount(pk);

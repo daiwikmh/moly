@@ -7,7 +7,7 @@ const codeExamples = [
   {
     label: "CLI",
     code: `# Install and run locally
-npx @moly/lido
+npx @moly-mcp/lido
 
 # Interactive setup wizard
 # Configures Claude Desktop automatically`,
@@ -16,7 +16,7 @@ npx @moly/lido
     label: "HTTP",
     code: `// Hosted MCP endpoint (no install)
 const endpoint =
-  'https://moly-mcp.vercel.app/api/mcp'
+  'https://moly-lido.vercel.app/api/mcp'
 
 // Optional mode headers
 {
@@ -26,7 +26,7 @@ const endpoint =
   },
   {
     label: "Tools",
-    code: `// 15 available MCP tools
+    code: `// 28 available MCP tools
 get_balance({ address })
 get_proposals({ count: 5 })
 get_conversion_rate()
@@ -38,7 +38,7 @@ request_withdrawal({ amount: "0.5" })`,
 ];
 
 const features = [
-  { title: "15 MCP tools", description: "Full Lido protocol coverage." },
+  { title: "28 MCP tools", description: "Full Lido protocol coverage." },
   { title: "Simulation mode", description: "Test every action before broadcast." },
   { title: "Dual network", description: "Hoodi testnet and Ethereum mainnet." },
   { title: "OWS vault", description: "Encrypted keys via Open Wallet Standard." },

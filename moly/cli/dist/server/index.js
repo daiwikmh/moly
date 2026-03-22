@@ -3,7 +3,7 @@ import {
   getSettings,
   stakeEth,
   updateSettings
-} from "../chunk-WFNKYSHA.js";
+} from "../chunk-ZX6OYPKV.js";
 import {
   castVote,
   claimWithdrawals,
@@ -12,31 +12,31 @@ import {
   getWithdrawalRequests,
   getWithdrawalStatus,
   requestWithdrawal
-} from "../chunk-N7HILYCG.js";
+} from "../chunk-C7R33HEF.js";
 import {
   configureAlertChannels,
   listAlerts,
   removeAlertById,
   setAlert
-} from "../chunk-FNOVBU5L.js";
-import "../chunk-LMW24A22.js";
+} from "../chunk-6UIRFWG4.js";
+import "../chunk-6F64RPQQ.js";
 import {
   bridgeToEthereum,
   getBridgeQuote,
   getBridgeStatus,
   getL2Balance,
   getTotalPosition
-} from "../chunk-Z2QIZCUK.js";
+} from "../chunk-LRR663PB.js";
 import {
   getBalance,
   getConversionRate,
   getRewards,
   unwrapWsteth,
   wrapSteth
-} from "../chunk-Y3MG4RMT.js";
+} from "../chunk-WMGNTYBF.js";
 import {
   loadConfig
-} from "../chunk-TJ66OXD4.js";
+} from "../chunk-P6VFMSPM.js";
 import {
   loadBounds,
   saveBounds
@@ -58,7 +58,7 @@ try {
 }
 var cfg = loadConfig();
 var modeNote = cfg.mode === "simulation" ? "SIMULATION \u2014 dry_run true by default, no real transactions" : "LIVE \u2014 real transactions on " + (cfg.network === "mainnet" ? "Ethereum Mainnet" : "Hoodi Testnet");
-var server = new McpServer({ name: "@moly/lido", version: "1.0.0" });
+var server = new McpServer({ name: "@moly-mcp/lido", version: "1.0.0" });
 server.tool(
   "get_balance",
   `Get ETH, stETH, and wstETH balances for an address. ${modeNote}`,
@@ -354,5 +354,5 @@ server.tool(
 );
 var transport = new StdioServerTransport();
 await server.connect(transport);
-process.stderr.write(`@moly/lido MCP server started \u2014 ${modeNote}
+process.stderr.write(`@moly-mcp/lido MCP server started \u2014 ${modeNote}
 `);

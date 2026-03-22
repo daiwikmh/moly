@@ -2,11 +2,11 @@
 import {
   applySettingsUpdate,
   getRuntime
-} from "./chunk-Y3MG4RMT.js";
+} from "./chunk-WMGNTYBF.js";
 import {
   loadConfig,
   redactedConfig
-} from "./chunk-TJ66OXD4.js";
+} from "./chunk-P6VFMSPM.js";
 
 // src/tools/stake.ts
 import { parseEther, formatEther } from "viem";
@@ -23,7 +23,6 @@ var REFERRAL = "0x0000000000000000000000000000000000000000";
 async function stakeEth(amountEth, dryRun) {
   const rt = getRuntime();
   const value = parseEther(amountEth);
-  const account = rt.getAddress();
   const lidoAddress = rt.chainAddresses.stETH;
   const shouldDryRun = rt.config.mode === "simulation" ? dryRun !== false : !!dryRun;
   if (shouldDryRun) {
@@ -51,6 +50,7 @@ async function stakeEth(amountEth, dryRun) {
       note: "stETH rebases daily \u2014 your balance grows automatically after staking."
     };
   }
+  const account = rt.getAddress();
   const tx = await rt.sdk.stake.stakeEth({
     value,
     account: { address: account },

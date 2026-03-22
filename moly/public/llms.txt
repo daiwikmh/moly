@@ -4,7 +4,7 @@
 
 ## MCP Endpoint
 
-URL: https://moly-mcp.vercel.app/api/mcp
+URL: https://moly-lido.vercel.app/api/mcp
 Transport: Streamable HTTP (POST)
 Authentication: None required
 
@@ -119,7 +119,7 @@ Returns: { simulated, network, action, proposalId, vote, proposal, note }
 
 ## Dashboard
 
-Landing: https://moly-mcp.vercel.app
-Web UI with AI chat: https://moly-mcp.vercel.app/dashboard
-Documentation: https://moly-mcp.vercel.app/docs
-Full reference: https://moly-mcp.vercel.app/llms-full.txt
+Landing: https://moly-lido.vercel.app
+Web UI with AI chat: https://moly-lido.vercel.app/dashboard
+Documentation: https://moly-lido.vercel.app/docs
+Full reference: https://moly-lido.vercel.app/llms-full.txt

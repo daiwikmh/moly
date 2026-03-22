@@ -9,10 +9,10 @@ const steps = [
     description:
       "Run one command to spin up the Lido MCP server locally, or use the hosted endpoint. Supports Claude Desktop, Cursor, and any MCP client.",
     code: `# Local CLI
-npx @moly/lido
+npx @moly-mcp/lido
 
 # or hosted endpoint
-https://moly-mcp.vercel.app/api/mcp`,
+https://moly-lido.vercel.app/api/mcp`,
   },
   {
     number: "II",
@@ -23,7 +23,7 @@ https://moly-mcp.vercel.app/api/mcp`,
   "mcpServers": {
     "moly": {
       "command": "npx",
-      "args": ["-y", "@moly/lido"]
+      "args": ["-y", "@moly-mcp/lido"]
     }
   }
 }`,

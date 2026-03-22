@@ -6,13 +6,13 @@ A complete platform for AI agents to interact with the [Lido](https://lido.fi) l
 
 > **Source code:** [github.com/daiwikmh/moly](https://github.com/daiwikmh/moly)
 
-**Three ways to use it:**
+**Start with the CLI. Use other methods when needed.**
 
-| | What | For who |
+| | What | Best for |
 |---|---|---|
-| [`@moly-mcp/lido`](#-cli-package-molylido) | `npx @moly-mcp/lido` — zero-config MCP server | Any developer with Claude Desktop, Cursor, or Windsurf |
-| [MCP Server](#-mcp-server-stdio) | Bun-based stdio MCP server (17 tools) | Developers embedding Lido in custom agent setups |
-| [Dashboard](#-dashboard) | Next.js agentic chat UI with dual MCP interface | End users who want a web interface |
+| **[CLI Package](#-cli-package-molylido)** | `npx @moly-mcp/lido` — interactive terminal with setup wizard, ledger, alerts, bounds | Primary: local automation, terminals, AI client integration, full control |
+| [MCP Server](#-mcp-server-stdio) | Bun-based stdio server (17 tools) | Custom agent setups, embedded systems, programmatic access |
+| [Dashboard](#-dashboard) | Next.js web UI with MCP-over-HTTP | Web browsers, non-technical users, real-time monitoring |
 
 ---
 
@@ -72,6 +72,15 @@ Built-in support for the [Open Wallet Standard](https://openwallet.sh) as a secu
 - **Fallback** — raw private key (chmod 600) still supported for quick setups
 - **Optional dependency** — OWS is not required, install only if you want encrypted key storage
 
+### Agent Skill Document
+
+**`/skill`** — Mental model and operational guidelines for AI agents:
+- Complete Lido mechanics reference
+- All 28 tools with parameters and examples
+- Safe agent patterns and common workflows
+- Raw markdown at `/api/skill` for agent integration
+- Discoverable by any MCP client or agent
+
 ### In-App Documentation
 
 19+ pages of docs served at `/docs` with:
@@ -85,13 +94,20 @@ Built-in support for the [Open Wallet Standard](https://openwallet.sh) as a secu
 
 ---
 
-## CLI Package (`@moly-mcp/lido`)
+## CLI Package (`@moly-mcp/lido`) — The Main Attraction
 
-The fastest way to get started. Runs an interactive setup wizard on first launch, stores config locally (`~/.moly/config.json` with chmod 600), and starts a stdio MCP server.
+The primary and fastest way to use Moly. Full-featured terminal interface with everything you need: interactive setup wizard, activity ledger, alert management, policy bounds, and cross-chain position monitoring. Works with any AI client (Claude Desktop, Cursor, Windsurf, or custom MCP setups).
 
 ```bash
 npx @moly-mcp/lido
 ```
+
+**Why start here:**
+- Zero setup — wizard handles everything
+- Full control — bounds, alerts, ledger, all from CLI
+- Activity tracking — every operation logged to SQLite
+- Monitor daemon — 30s polling for alerts via Telegram/webhook
+- Works offline — all config stored locally (`~/.moly/`)
 
 The wizard asks for:
 1. **Network** — Hoodi Testnet or Ethereum Mainnet
@@ -144,9 +160,9 @@ Add to your MCP client config (Claude Desktop, Cursor, Windsurf):
 
 ---
 
-## MCP Server (stdio)
+## Alternative: MCP Server (stdio)
 
-Standalone Bun-based MCP server for embedding in custom agent setups. Reads config from environment variables.
+If the CLI doesn't fit your setup, use this standalone Bun-based server. Reads config from environment variables, suitable for embedding in custom agent workflows.
 
 ```bash
 cd mcp
@@ -176,9 +192,9 @@ bun install && bun run dev
 
 ---
 
-## Dashboard
+## Alternative: Dashboard (Web UI)
 
-Next.js agentic chat UI with dual MCP architecture. Serves as both a web chat interface and an MCP-over-HTTP endpoint (`/api/mcp`) simultaneously.
+Prefer a web browser? This Next.js app provides an agentic chat interface with real-time protocol data and simulation support. Serves as both a chat interface and an MCP-over-HTTP endpoint (`/api/mcp`) for external agents.
 
 ```bash
 cp .env.example .env.local

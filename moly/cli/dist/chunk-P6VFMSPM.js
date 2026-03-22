@@ -11,7 +11,7 @@ function configExists() {
 }
 function loadConfig() {
   if (!existsSync(CONFIG_PATH)) {
-    throw new Error("No config found. Run: npx @moly/lido  (or: moly setup)");
+    throw new Error("No config found. Run: npx @moly-mcp/lido  (or: moly setup)");
   }
   try {
     const cfg = JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));

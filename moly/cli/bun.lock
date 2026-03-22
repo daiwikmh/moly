@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "@moly/lido",
+      "name": "@moly-mcp/lido",
       "dependencies": {
         "@clack/prompts": "^0.9.1",
         "@lidofinance/lido-ethereum-sdk": "^4.7.0",

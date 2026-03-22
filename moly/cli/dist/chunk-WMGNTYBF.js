@@ -2,16 +2,14 @@
 import {
   loadConfig,
   saveConfig
-} from "./chunk-TJ66OXD4.js";
-import {
-  __require
-} from "./chunk-PDX44BCA.js";
+} from "./chunk-P6VFMSPM.js";
 
 // src/server/runtime.ts
 import { createPublicClient, createWalletClient, http, defineChain } from "viem";
 import { mainnet, base, arbitrum } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { LidoSDK } from "@lidofinance/lido-ethereum-sdk";
+import { createRequire } from "module";
 
 // src/config/types.ts
 var L2_CHAINS = {
@@ -48,6 +46,7 @@ var CHAIN_CONFIG = {
 };
 
 // src/server/runtime.ts
+var _require = createRequire(import.meta.url);
 var hoodi = defineChain({
   id: 560048,
   name: "Hoodi Testnet",
@@ -74,13 +73,13 @@ function buildRuntime() {
   function resolveAccount() {
     if (_resolvedAccount) return _resolvedAccount;
     if (config.ows) {
-      let exportWallet;
+      let owsSdk;
       try {
-        exportWallet = __require("@open-wallet-standard/core").exportWallet;
+        owsSdk = _require("@open-wallet-standard/core");
       } catch {
         throw new Error("OWS SDK not installed. Run: npm install @open-wallet-standard/core");
       }
-      const exported = exportWallet(config.ows.walletName, config.ows.passphrase);
+      const exported = owsSdk.exportWallet(config.ows.walletName, config.ows.passphrase);
       const keyHex = exported.secp256k1 ?? exported;
       const pk2 = keyHex.startsWith("0x") ? keyHex : "0x" + keyHex;
       _resolvedAccount = privateKeyToAccount(pk2);

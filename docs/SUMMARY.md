@@ -2,6 +2,10 @@
 
 * [Welcome to Moly](README.md)
 
+## For Agents
+
+* [Skill Document](/skill.md) — Mental model, tool reference, safe patterns, and workflows for AI agents
+
 ## Getting Started
 
 * [Prerequisites](setup/prerequisites.md)
@@ -9,16 +13,24 @@
 * [Environment Variables](setup/environment-variables.md)
 * [Quick Start](setup/quick-start.md)
 
-## MCP Server
+## CLI Package
+
+* [Overview](cli/overview.md)
+* [Configuration](cli/configuration.md)
+* [Activity Ledger](cli/ledger.md)
+* [Policy Bounds](cli/bounds.md)
+* [Alerts & Monitoring](cli/alerts.md)
+* [Private Key & Wallets](cli/wallets.md)
+
+## Alternative: MCP Server
 
 * [Overview](mcp-server/overview.md)
 * [Configuration](mcp-server/configuration.md)
 * [Claude Code Setup](mcp-server/claude-code.md)
 * [Claude Desktop Setup](mcp-server/claude-desktop.md)
 * [Cursor Setup](mcp-server/cursor.md)
-* [Private Key & Wallets](mcp-server/wallets.md)
 
-## Dashboard
+## Alternative: Dashboard
 
 * [Overview](dashboard/overview.md)
 * [Chat Interface](dashboard/chat.md)

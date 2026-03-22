@@ -9,6 +9,7 @@ import { useRef, useEffect, useState } from 'react';
 export function ChatPanel() {
   const { mode, network, chainId } = useMode();
   const [input, setInput] = useState('');
+  const [showDisclaimer, setShowDisclaimer] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Stable transport instance — we mutate .body when config changes
@@ -41,14 +42,14 @@ export function ChatPanel() {
       prevConfig.current = { mode, network, chainId };
       // Only inject if there are already messages (don't clutter empty state)
       if (messages.length > 0) {
-        const label = `${network === 'testnet' ? 'Hoodi Testnet' : 'Ethereum Mainnet'} · ${mode === 'simulation' ? 'Simulation' : 'Live'}`;
+        const label = `${network === 'testnet' ? 'Hoodi Testnet' : 'Ethereum Mainnet'} / ${mode === 'simulation' ? 'Simulation' : 'Live'}`;
         setMessages((prev) => [
           ...prev,
           {
             id: `config-${Date.now()}`,
             role: 'assistant' as const,
-            content: `Switched to **${label}**. Future tool calls will use these settings.`,
-            parts: [{ type: 'text' as const, text: `Switched to **${label}**. Future tool calls will use these settings.` }],
+            content: `Switched to ${label}. Future tool calls will use these settings.`,
+            parts: [{ type: 'text' as const, text: `Switched to ${label}. Future tool calls will use these settings.` }],
           },
         ]);
       }
@@ -72,6 +73,33 @@ export function ChatPanel() {
 
   return (
     <div className="chat-panel">
+      {showDisclaimer && (
+        <div className="chat-disclaimer">
+          <div className="chat-disclaimer-content">
+            <div className="chat-disclaimer-title">Simulation Only</div>
+            <div className="chat-disclaimer-text">
+              This dashboard is for exploring Moly tools only. All write operations
+              (stake, withdraw, wrap, vote, bridge) run as dry-run simulations.
+              No real transactions are broadcast.
+            </div>
+            <div className="chat-disclaimer-text">
+              The dashboard has no access to any private key and can never execute
+              real on-chain transactions.
+            </div>
+            <div className="chat-disclaimer-text">
+              To enable full transaction capabilities, install the CLI and configure
+              your wallet:
+            </div>
+            <code className="chat-disclaimer-code">npx @moly-mcp/lido</code>
+            <div className="chat-disclaimer-actions">
+              <a href="/docs" className="chat-disclaimer-link">Read the docs</a>
+              <button className="chat-disclaimer-dismiss" onClick={() => setShowDisclaimer(false)}>
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="chat-messages" ref={scrollRef}>
         {messages.length === 0 && (
           <div className="chat-empty">

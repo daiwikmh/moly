@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
   { name: "How It Works", href: "#how-it-works" },
   { name: "Developers", href: "#developers" },
+  { name: "Agent Skill", href: "/skill" },
   { name: "GitHub", href: "https://github.com/daiwikmh/moly" },
 ];
 
@@ -41,6 +43,13 @@ export function Navigation() {
           }`}
         >
           <a href="/" className="flex items-center gap-2 group">
+            <Image
+              src="/molylogo.png"
+              alt="Moly"
+              width={28}
+              height={28}
+              className={`transition-all duration-500 ${isScrolled ? "w-6 h-6" : "w-7 h-7"}`}
+            />
             <span
               className={`font-display tracking-tight transition-all duration-500 ${
                 isScrolled ? "text-xl" : "text-2xl"
@@ -67,21 +76,14 @@ export function Navigation() {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
+           
             <Link
               href="/docs"
-              className={`text-foreground/70 hover:text-foreground transition-all duration-500 ${
-                isScrolled ? "text-xs" : "text-sm"
-              }`}
-            >
-              Docs
-            </Link>
-            <Link
-              href="/dashboard"
               className={`inline-flex items-center justify-center bg-foreground hover:bg-foreground/90 text-background rounded-full font-medium transition-all duration-500 ${
                 isScrolled ? "px-4 h-8 text-xs" : "px-6 h-9 text-sm"
               }`}
             >
-              Open Dashboard
+              Open Docs
             </Link>
           </div>
 
@@ -129,7 +131,7 @@ export function Navigation() {
           </div>
 
           <div
-            className={`flex gap-4 pt-8 border-t border-foreground/10 transition-all duration-500 ${
+            className={`flex flex-col gap-3 pt-8 border-t border-foreground/10 transition-all duration-500 ${
               isMobileMenuOpen
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 translate-y-4"
@@ -137,19 +139,28 @@ export function Navigation() {
             style={{ transitionDelay: isMobileMenuOpen ? "300ms" : "0ms" }}
           >
             <Link
-              href="/docs"
-              className="flex-1 inline-flex items-center justify-center h-14 text-base rounded-full border border-foreground/20 text-foreground hover:bg-foreground/5 transition-colors"
+              href="/skill"
+              className="inline-flex items-center justify-center h-12 text-sm rounded-full border border-foreground/20 text-foreground hover:bg-foreground/5 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Docs
+              Agent Skill
             </Link>
-            <Link
-              href="/dashboard"
-              className="flex-1 inline-flex items-center justify-center h-14 text-base rounded-full bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Dashboard
-            </Link>
+            <div className="flex gap-3">
+              <Link
+                href="/docs"
+                className="flex-1 inline-flex items-center justify-center h-12 text-sm rounded-full border border-foreground/20 text-foreground hover:bg-foreground/5 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Docs
+              </Link>
+              <Link
+                href="/dashboard"
+                className="flex-1 inline-flex items-center justify-center h-12 text-sm rounded-full bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </div>

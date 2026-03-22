@@ -33,7 +33,7 @@ export const NAV: DocSection[] = [
   {
     title: "CLI Package",
     pages: [
-      { slug: "cli", title: "npx @moly/lido" },
+      { slug: "cli", title: "npx @moly-mcp/lido" },
       { slug: "cli/setup", title: "Setup Wizard" },
       { slug: "cli/configuration", title: "Configuration Reference" },
     ],
@@ -112,7 +112,7 @@ export const PAGES: Record<string, DocPage> = {
   "mcpServers": {
     "moly": {
       "type": "http",
-      "url": "https://moly-mcp.vercel.app/api/mcp"
+      "url": "https://moly-lido.vercel.app/api/mcp"
     }
   }
 }`}</Pre>
@@ -126,7 +126,7 @@ export const PAGES: Record<string, DocPage> = {
           ["Dual Mode", "Simulation (dry-run) and Live (real transactions)"],
           ["Multi-Chain", "Hoodi testnet and Ethereum mainnet"],
           ["Hosted Server", "HTTP MCP endpoint — just add the URL, zero setup"],
-          ["Chat Dashboard", "Web UI with AI agent at moly-mcp.vercel.app"],
+          ["Chat Dashboard", "Web UI with AI agent at moly-lido.vercel.app"],
           ["Self-Hostable", "Clone and run locally with Bun for full control"],
         ]} />
 
@@ -138,7 +138,7 @@ export const PAGES: Record<string, DocPage> = {
 └─────────────┘                  └──────────────┘              └────────────┘
 
 ┌──────────────────────────────────────────────┐
-│  Moly Dashboard (moly-mcp.vercel.app)         │
+│  Moly Dashboard (moly-lido.vercel.app)         │
 │  ┌────────────────────┬─────────────────────┐ │
 │  │  Chat Panel        │  Sidebar            │ │
 │  │  AI agent + tools  │  Balances / Stats   │ │
@@ -170,7 +170,7 @@ export const PAGES: Record<string, DocPage> = {
   "mcpServers": {
     "moly": {
       "type": "http",
-      "url": "https://moly-mcp.vercel.app/api/mcp"
+      "url": "https://moly-lido.vercel.app/api/mcp"
     }
   }
 }`}</Pre>
@@ -184,7 +184,7 @@ export const PAGES: Record<string, DocPage> = {
         <Pre>{`Show me recent governance proposals`}</Pre>
 
         <H2>Dashboard</H2>
-        <P>You can also use Moly through the web dashboard at <strong>moly-mcp.vercel.app</strong> — it has an AI chat interface with the same 17 tools built in, plus a sidebar showing live balances and protocol stats.</P>
+        <P>You can also use Moly through the web dashboard at <strong>moly-lido.vercel.app</strong> — it has an AI chat interface with the same 17 tools built in, plus a sidebar showing live balances and protocol stats.</P>
 
         <H2>Defaults</H2>
         <Table headers={["Setting", "Default", "Change via"]} rows={[
@@ -286,7 +286,7 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
   "mcpServers": {
     "moly": {
       "type": "http",
-      "url": "https://moly-mcp.vercel.app/api/mcp"
+      "url": "https://moly-lido.vercel.app/api/mcp"
     }
   }
 }`}</Pre>
@@ -299,7 +299,7 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
   "mcpServers": {
     "moly": {
       "type": "http",
-      "url": "https://moly-mcp.vercel.app/api/mcp",
+      "url": "https://moly-lido.vercel.app/api/mcp",
       "headers": {
         "x-lido-mode": "simulation",
         "x-lido-network": "mainnet"
@@ -363,7 +363,7 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
   "mcpServers": {
     "moly": {
       "type": "http",
-      "url": "https://moly-mcp.vercel.app/api/mcp"
+      "url": "https://moly-lido.vercel.app/api/mcp"
     }
   }
 }`}</Pre>
@@ -387,7 +387,7 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
   "mcpServers": {
     "moly": {
       "type": "http",
-      "url": "https://moly-mcp.vercel.app/api/mcp",
+      "url": "https://moly-lido.vercel.app/api/mcp",
       "headers": {
         "x-lido-mode": "live",
         "x-lido-network": "mainnet"
@@ -434,7 +434,7 @@ Agent: [calls get_balance] → [calls wrap_steth]
     description: "Build agents that connect to the Moly MCP server programmatically",
     content: (
       <>
-        <P>Three ways to connect to Moly programmatically. All examples point to the hosted server at <Code>https://moly-mcp.vercel.app/api/mcp</Code>.</P>
+        <P>Three ways to connect to Moly programmatically. All examples point to the hosted server at <Code>https://moly-lido.vercel.app/api/mcp</Code>.</P>
 
         <H2>Anthropic API (MCP Connector)</H2>
         <P>The simplest approach. Anthropic handles the MCP connection — no MCP client library needed.</P>
@@ -449,7 +449,7 @@ const response = await client.beta.messages.create(
     mcp_servers: [
       {
         type: "url",
-        url: "https://moly-mcp.vercel.app/api/mcp",
+        url: "https://moly-lido.vercel.app/api/mcp",
         name: "moly",
       },
     ],
@@ -478,7 +478,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 
 const mcpClient = await createMCPClient({
   transport: new StreamableHTTPClientTransport(
-    new URL("https://moly-mcp.vercel.app/api/mcp")
+    new URL("https://moly-lido.vercel.app/api/mcp")
   ),
 });
 
@@ -500,7 +500,7 @@ await mcpClient.close();`}</Pre>
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const transport = new StreamableHTTPClientTransport(
-  new URL("https://moly-mcp.vercel.app/api/mcp")
+  new URL("https://moly-lido.vercel.app/api/mcp")
 );
 
 const client = new Client({
@@ -532,7 +532,7 @@ await client.close();`}</Pre>
         <H2>Configure Mode & Network</H2>
         <P>Add custom headers to the transport to change defaults:</P>
         <Pre title="With headers (MCP SDK)">{`const transport = new StreamableHTTPClientTransport(
-  new URL("https://moly-mcp.vercel.app/api/mcp"),
+  new URL("https://moly-lido.vercel.app/api/mcp"),
   {
     requestInit: {
       headers: {
@@ -1183,13 +1183,13 @@ Agent: [calls cast_vote]
   // ── CLI Package ──────────────────────────────────────────────────────────
 
   "cli": {
-    title: "npx @moly/lido",
+    title: "npx @moly-mcp/lido",
     description: "Zero-config Lido MCP Server you can run instantly with npx — no local setup required.",
     content: (
       <>
         <H2>What is it?</H2>
         <P>
-          <Code>@moly/lido</Code> is a standalone npm package that runs a full Lido MCP server on your machine.
+          <Code>@moly-mcp/lido</Code> is a standalone npm package that runs a full Lido MCP server on your machine.
           Any MCP-compatible AI client (Claude Desktop, Cursor, Windsurf) can connect to it and interact with
           Lido staking, withdrawals, wrapping, and governance — without you writing a single line of code.
         </P>
@@ -1201,18 +1201,18 @@ Agent: [calls cast_vote]
 
         <H2>Quick start</H2>
         <Pre title="Terminal">{`# Run once — wizard launches on first use
-npx @moly/lido`}</Pre>
+npx @moly-mcp/lido`}</Pre>
         <P>The interactive wizard walks you through network, mode, optional private key, and AI provider selection. When done it prints the exact config snippet to paste into your AI client.</P>
 
         <H2>Commands</H2>
         <Table
           headers={["Command", "Description"]}
           rows={[
-            ["npx @moly/lido", "First run: wizard → MCP server. Subsequent runs: start server directly"],
+            ["npx @moly-mcp/lido", "First run: wizard → MCP server. Subsequent runs: start server directly"],
             ["moly setup", "Re-run the full setup wizard"],
             ["moly config", "Print current configuration (keys redacted)"],
             ["moly reset", "Delete ~/.moly/config.json and start fresh"],
-            ["npx @moly/lido --server", "Force-start MCP server (use this in AI client configs)"],
+            ["npx @moly-mcp/lido --server", "Force-start MCP server (use this in AI client configs)"],
           ]}
         />
 
@@ -1222,7 +1222,7 @@ npx @moly/lido`}</Pre>
   "mcpServers": {
     "moly": {
       "command": "npx",
-      "args": ["@moly/lido", "--server"]
+      "args": ["@moly-mcp/lido", "--server"]
     }
   }
 }`}</Pre>
@@ -1231,7 +1231,7 @@ npx @moly/lido`}</Pre>
   "mcpServers": {
     "moly": {
       "command": "npx",
-      "args": ["@moly/lido", "--server"]
+      "args": ["@moly-mcp/lido", "--server"]
     }
   }
 }`}</Pre>
@@ -1240,7 +1240,7 @@ npx @moly/lido`}</Pre>
   "mcpServers": {
     "moly": {
       "command": "npx",
-      "args": ["@moly/lido", "--server"]
+      "args": ["@moly-mcp/lido", "--server"]
     }
   }
 }`}</Pre>
@@ -1293,7 +1293,7 @@ npx @moly/lido`}</Pre>
     content: (
       <>
         <H2>First run</H2>
-        <P>On first run (<Code>npx @moly/lido</Code>), the wizard guides you through five steps:</P>
+        <P>On first run (<Code>npx @moly-mcp/lido</Code>), the wizard guides you through five steps:</P>
 
         <H3>1. Network</H3>
         <P>Choose between <strong>Hoodi Testnet</strong> (chain 560048, safe for testing) and <strong>Ethereum Mainnet</strong> (chain 1, real assets). You can switch later with <Code>update_settings</Code> or <Code>moly setup</Code>.</P>

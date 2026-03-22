@@ -6,7 +6,7 @@ import {
   loadConfig,
   redactedConfig,
   saveConfig
-} from "./chunk-TJ66OXD4.js";
+} from "./chunk-P6VFMSPM.js";
 import "./chunk-PDX44BCA.js";
 
 // src/setup/wizard.ts
@@ -18,8 +18,10 @@ import {
   password,
   note,
   cancel,
-  isCancel
+  isCancel,
+  spinner
 } from "@clack/prompts";
+import { generatePrivateKey } from "viem/accounts";
 function bail(value) {
   cancel("Setup cancelled.");
   process.exit(0);
@@ -29,7 +31,7 @@ function check(value) {
   return value;
 }
 function clientSnippet(client) {
-  const entry = `"moly": { "command": "npx", "args": ["@moly/lido", "--server"] }`;
+  const entry = `"moly": { "command": "npx", "args": ["@moly-mcp/lido", "--server"] }`;
   switch (client) {
     case "claude-desktop":
       return `Add to ~/Library/Application Support/Claude/claude_desktop_config.json
@@ -147,14 +149,17 @@ async function runWizard() {
     })
   );
   if (keySource === "ows") {
+    let owsSdk = null;
     let wallets = [];
     try {
-      const owsSdk = await import("@open-wallet-standard/core");
+      const { createRequire } = await import("module");
+      const _req = createRequire(import.meta.url);
+      owsSdk = _req("@open-wallet-standard/core");
       wallets = owsSdk.listWallets();
     } catch {
-      note("Could not load OWS. Install it first:\ncurl -fsSL https://openwallet.sh/install.sh | bash\nnpm install @open-wallet-standard/core", "OWS not found");
+      note("OWS SDK not found. Install it first:\ncurl -fsSL https://openwallet.sh/install.sh | bash\nnpm install @open-wallet-standard/core\nFalling back to raw key storage.", "OWS not available");
     }
-    if (wallets.length > 0) {
+    if (owsSdk && wallets.length > 0) {
       const walletName = check(
         await select({
           message: "Which OWS wallet?",
@@ -171,8 +176,29 @@ async function runWizard() {
         })
       );
       ows = { walletName, passphrase: passphrase.trim() };
-    } else if (wallets.length === 0) {
-      note('No OWS wallets found. Create one first:\nows wallet create --name "moly"', "Empty vault");
+    } else if (owsSdk && wallets.length === 0) {
+      note("No OWS wallets found. Creating one for you...", "New OWS wallet");
+      const walletName = check(
+        await text({ message: "Wallet name:", placeholder: "moly", initialValue: "moly" })
+      );
+      const passphrase = check(
+        await password({ message: "Set a passphrase (used to encrypt the key):", mask: "*" })
+      );
+      const s = spinner();
+      s.start("Generating wallet...");
+      try {
+        const privateKey2 = generatePrivateKey();
+        owsSdk.createWallet(walletName.trim() || "moly", passphrase.trim(), privateKey2);
+        s.stop("Wallet created.");
+        ows = { walletName: walletName.trim() || "moly", passphrase: passphrase.trim() };
+      } catch (err) {
+        s.stop("Auto-create failed: " + err.message);
+        note("Falling back to raw private key storage.", "Fallback");
+        const pk = check(
+          await password({ message: "Enter or paste a private key (0x...) \u2014 or generate one:", mask: "*" })
+        );
+        privateKey = pk.trim() || null;
+      }
     }
   } else if (keySource === "raw") {
     const pk = check(
@@ -254,7 +280,7 @@ async function main() {
     case "setup": {
       const { cfg, terminalMode } = await runWizard();
       if (terminalMode) {
-        const { startChatSession } = await import("./session-7MLCUSPD.js");
+        const { startChatSession } = await import("./session-ZIAXZNTD.js");
         await startChatSession(cfg);
       } else {
         await startServer();
@@ -264,7 +290,7 @@ async function main() {
     // ── moly config ───────────────────────────────────────────────────
     case "config": {
       if (!configExists()) {
-        console.log("No config found. Run: npx @moly/lido");
+        console.log("No config found. Run: npx @moly-mcp/lido");
         process.exit(1);
       }
       const cfg = loadConfig();
@@ -280,7 +306,7 @@ async function main() {
         process.exit(0);
       }
       deleteConfig();
-      console.log("Config deleted. Run: npx @moly/lido  to set up again.");
+      console.log("Config deleted. Run: npx @moly-mcp/lido  to set up again.");
       break;
     }
     // ── moly alert ─────────────────────────────────────────────────────
@@ -299,13 +325,13 @@ async function main() {
           }
           const threshold = args[3] && !args[3].startsWith("-") ? parseFloat(args[3]) : void 0;
           const channel = getFlag("--channel") ?? "telegram";
-          const { setAlert } = await import("./alerts-M2Q5FSOX.js");
+          const { setAlert } = await import("./alerts-ARQAPRIT.js");
           const alert = setAlert({ condition, threshold, channel });
           console.log("Alert created:", JSON.stringify(alert, null, 2));
           break;
         }
         case "list": {
-          const { listAlerts } = await import("./alerts-M2Q5FSOX.js");
+          const { listAlerts } = await import("./alerts-ARQAPRIT.js");
           console.log(JSON.stringify(listAlerts(), null, 2));
           break;
         }
@@ -315,12 +341,12 @@ async function main() {
             console.log("Usage: moly alert remove <id>");
             break;
           }
-          const { removeAlertById } = await import("./alerts-M2Q5FSOX.js");
+          const { removeAlertById } = await import("./alerts-ARQAPRIT.js");
           console.log(JSON.stringify(removeAlertById(id), null, 2));
           break;
         }
         case "channels": {
-          const { configureAlertChannels } = await import("./alerts-M2Q5FSOX.js");
+          const { configureAlertChannels } = await import("./alerts-ARQAPRIT.js");
           const result = configureAlertChannels({
             telegram_token: getFlag("--telegram-token"),
             telegram_chat_id: getFlag("--telegram-chat"),
@@ -334,7 +360,7 @@ async function main() {
             console.log("No config. Run: moly setup");
             process.exit(1);
           }
-          const { runDaemon } = await import("./daemon-C2VTLQBI.js");
+          const { runDaemon } = await import("./daemon-RZA4HEUI.js");
           await runDaemon();
           break;
         }
@@ -368,7 +394,7 @@ async function main() {
           break;
         }
         case "status": {
-          const { loadAlerts } = await import("./store-4FGS73N4.js");
+          const { loadAlerts } = await import("./store-SKFUVSK4.js");
           const data = loadAlerts();
           if (!data.daemonPid) {
             console.log("No daemon running (or never started).");
@@ -387,7 +413,7 @@ async function main() {
           break;
         }
         case "stop": {
-          const { loadAlerts, saveAlerts } = await import("./store-4FGS73N4.js");
+          const { loadAlerts, saveAlerts } = await import("./store-SKFUVSK4.js");
           const data = loadAlerts();
           if (!data.daemonPid) {
             console.log("No daemon PID recorded.");
@@ -492,17 +518,34 @@ async function main() {
         console.log("No config. Run: moly setup");
         process.exit(1);
       }
-      const { getTotalPosition } = await import("./position-F32CGXT3.js");
+      const { getTotalPosition } = await import("./position-ANCFIWD6.js");
       const address = args[1];
       const pos = await getTotalPosition(address);
       console.log(JSON.stringify(pos, null, 2));
+      break;
+    }
+    // ── moly terminal — start chat session directly ───────────────────
+    case "terminal": {
+      if (!configExists()) {
+        const { cfg, terminalMode } = await runWizard();
+        if (terminalMode) {
+          const { startChatSession } = await import("./session-ZIAXZNTD.js");
+          await startChatSession(cfg);
+        } else {
+          await startServer();
+        }
+      } else {
+        const cfg = loadConfig();
+        const { startChatSession } = await import("./session-ZIAXZNTD.js");
+        await startChatSession(cfg);
+      }
       break;
     }
     // ── moly --server (force-start, used in AI client configs) ────────
     case "--server": {
       if (!configExists()) {
         process.stderr.write(
-          "ERROR: No config found. Run: npx @moly/lido  to set up first.\n"
+          "ERROR: No config found. Run: npx @moly-mcp/lido  to set up first.\n"
         );
         process.exit(1);
       }
@@ -514,7 +557,7 @@ async function main() {
       if (!configExists()) {
         const { cfg, terminalMode } = await runWizard();
         if (terminalMode) {
-          const { startChatSession } = await import("./session-7MLCUSPD.js");
+          const { startChatSession } = await import("./session-ZIAXZNTD.js");
           await startChatSession(cfg);
         } else {
           await startServer();
@@ -522,7 +565,7 @@ async function main() {
       } else {
         const cfg = loadConfig();
         process.stderr.write(
-          `@moly/lido \u2014 starting MCP server (${cfg.mode} \xB7 ${cfg.network})
+          `@moly-mcp/lido \u2014 starting MCP server (${cfg.mode} \xB7 ${cfg.network})
 `
         );
         await startServer();

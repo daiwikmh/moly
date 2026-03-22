@@ -30,6 +30,17 @@ ${D}              powered by Lido${R}
 
 function ln(text = '') { process.stdout.write(text + '\n'); }
 
+function printResponse(text: string) {
+  const lines = text.split('\n');
+  const prefix = `${B}${GR}moly${R} › `;
+  const indent = '       ';
+  ln();
+  lines.forEach((line, i) => {
+    process.stdout.write((i === 0 ? prefix : indent) + line + '\n');
+  });
+  ln();
+}
+
 function saveTrade(toolName: string, args: Record<string, unknown>, result: string) {
   try {
     // extract tx_hash and amount from result if present
@@ -95,15 +106,20 @@ export async function startChatSession(cfg: MolyConfig) {
       role: 'user',
       content:
         skillContext +
-        `You are Moly, a terminal assistant for Lido Finance on ${cfg.network}. ` +
-        `Mode: ${cfg.mode} (${cfg.mode === 'simulation' ? 'dry-run, nothing broadcast' : 'LIVE - real on-chain transactions'}). ` +
-        `Chain scope: ${cfg.chainScope ?? 'ethereum'}. ` +
+        `You are Moly, a terminal assistant for Lido Finance on ${cfg.network}.\n` +
+        `Mode: ${cfg.mode} (${cfg.mode === 'simulation' ? 'dry-run, nothing broadcast' : 'LIVE - real on-chain transactions'}).\n` +
+        `Chain scope: ${cfg.chainScope ?? 'ethereum'}.\n\n` +
         `You can only do what your tools support: staking ETH, withdrawals, wrap/unwrap stETH/wstETH, balances, rewards, Lido DAO governance` +
-        `${cfg.chainScope === 'all' ? ', and L2 bridging from Base/Arbitrum to Ethereum via LI.FI' : ''}. ` +
-        `${cfg.chainScope === 'all' ? 'If the user wants to stake ETH from Base or Arbitrum, first check their L2 balance with get_l2_balance, then bridge to Ethereum with bridge_to_ethereum, then after bridging completes use stake_eth. Bridge takes 1-20 min, tell user to check with get_bridge_status. ' : ''}` +
-        `If asked about anything outside those tools (e.g. Lido Vaults, validators, node operators, DeFi integrations), say clearly and briefly that it is not supported. ` +
-        `IMPORTANT: This is a terminal. Never use markdown. No **bold**, no bullet points, no headers, no backticks. Plain text only. ` +
-        `Be concise. For live transactions always confirm first.`,
+        `${cfg.chainScope === 'all' ? ', and L2 bridging from Base/Arbitrum to Ethereum via LI.FI' : ''}.\n` +
+        `${cfg.chainScope === 'all' ? 'If the user wants to stake ETH from Base or Arbitrum, first check their L2 balance with get_l2_balance, then bridge to Ethereum with bridge_to_ethereum, then after bridging completes use stake_eth. Bridge takes 1-20 min, tell user to check with get_bridge_status.\n' : ''}` +
+        `If asked about anything outside those tools (e.g. Lido Vaults, validators, node operators, DeFi integrations), say clearly and briefly that it is not supported.\n\n` +
+        `OUTPUT FORMAT RULES (terminal, no markdown):\n` +
+        `- Never use **bold**, _italic_, # headers, or backtick code blocks.\n` +
+        `- Use plain dashes (-) for lists, one item per line.\n` +
+        `- Use blank lines to separate sections or groups of information.\n` +
+        `- For key/value data (balances, settings, etc.) use "  key: value" format, one per line.\n` +
+        `- Keep prose concise. Lead with the answer, then details.\n` +
+        `- For live transactions always confirm with the user first.`,
     },
     {
       role: 'assistant',
@@ -180,18 +196,14 @@ export async function startChatSession(cfg: MolyConfig) {
           messages.push(...toolResults);
 
           if (response.text) {
-            ln();
-            ln(`${B}${GR}moly${R} › ${response.text}`);
-            ln();
+            printResponse(response.text);
           }
 
           continue;
         }
 
         if (response.text) {
-          ln();
-          ln(`${B}${GR}moly${R} › ${response.text}`);
-          ln();
+          printResponse(response.text);
         }
         break;
       }

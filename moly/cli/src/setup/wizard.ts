@@ -8,9 +8,11 @@ import {
   note,
   cancel,
   isCancel,
+  spinner,
 } from '@clack/prompts';
 import { saveConfig, getConfigPath } from '../config/store.js';
 import type { MolyConfig, Network, Mode, AiProvider, AiClient, ChainScope, OwsConfig } from '../config/types.js';
+import { generatePrivateKey } from 'viem/accounts';
 
 function bail(value: unknown): never {
   cancel('Setup cancelled.');
@@ -24,7 +26,7 @@ function check<T>(value: T | symbol): T {
 
 // AI client config snippets
 function clientSnippet(client: AiClient): string | null {
-  const entry = `"moly": { "command": "npx", "args": ["@moly/lido", "--server"] }`;
+  const entry = `"moly": { "command": "npx", "args": ["@moly-mcp/lido", "--server"] }`;
   switch (client) {
     case 'claude-desktop':
       return (
@@ -155,15 +157,19 @@ export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: bool
   ) as string;
 
   if (keySource === 'ows') {
+    let owsSdk: any = null;
     let wallets: Array<{ id: string; name: string; chain: string; address: string }> = [];
+
     try {
-      const owsSdk = await import('@open-wallet-standard/core');
+      const { createRequire } = await import('module');
+      const _req = createRequire(import.meta.url);
+      owsSdk = _req('@open-wallet-standard/core');
       wallets = owsSdk.listWallets();
     } catch {
-      note('Could not load OWS. Install it first:\ncurl -fsSL https://openwallet.sh/install.sh | bash\nnpm install @open-wallet-standard/core', 'OWS not found');
+      note('OWS SDK not found. Install it first:\ncurl -fsSL https://openwallet.sh/install.sh | bash\nnpm install @open-wallet-standard/core\nFalling back to raw key storage.', 'OWS not available');
     }
 
-    if (wallets.length > 0) {
+    if (owsSdk && wallets.length > 0) {
       const walletName = check(
         await select({
           message: 'Which OWS wallet?',
@@ -182,8 +188,33 @@ export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: bool
       ) as string;
 
       ows = { walletName, passphrase: passphrase.trim() };
-    } else if (wallets.length === 0) {
-      note('No OWS wallets found. Create one first:\nows wallet create --name "moly"', 'Empty vault');
+
+    } else if (owsSdk && wallets.length === 0) {
+      note('No OWS wallets found. Creating one for you...', 'New OWS wallet');
+
+      const walletName = check(
+        await text({ message: 'Wallet name:', placeholder: 'moly', initialValue: 'moly' })
+      ) as string;
+
+      const passphrase = check(
+        await password({ message: 'Set a passphrase (used to encrypt the key):', mask: '*' })
+      ) as string;
+
+      const s = spinner();
+      s.start('Generating wallet...');
+      try {
+        const privateKey = generatePrivateKey();
+        owsSdk.createWallet(walletName.trim() || 'moly', passphrase.trim(), privateKey);
+        s.stop('Wallet created.');
+        ows = { walletName: walletName.trim() || 'moly', passphrase: passphrase.trim() };
+      } catch (err: any) {
+        s.stop('Auto-create failed: ' + err.message);
+        note('Falling back to raw private key storage.', 'Fallback');
+        const pk = check(
+          await password({ message: 'Enter or paste a private key (0x...) — or generate one:', mask: '*' })
+        ) as string;
+        privateKey = pk.trim() || null;
+      }
     }
   } else if (keySource === 'raw') {
     const pk = check(

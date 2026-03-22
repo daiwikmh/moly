@@ -3,7 +3,7 @@ import {
   getSettings,
   stakeEth,
   updateSettings
-} from "./chunk-WFNKYSHA.js";
+} from "./chunk-ZX6OYPKV.js";
 import {
   castVote,
   claimWithdrawals,
@@ -12,29 +12,29 @@ import {
   getWithdrawalRequests,
   getWithdrawalStatus,
   requestWithdrawal
-} from "./chunk-N7HILYCG.js";
+} from "./chunk-C7R33HEF.js";
 import {
   configureAlertChannels,
   listAlerts,
   removeAlertById,
   setAlert
-} from "./chunk-FNOVBU5L.js";
-import "./chunk-LMW24A22.js";
+} from "./chunk-6UIRFWG4.js";
+import "./chunk-6F64RPQQ.js";
 import {
   bridgeToEthereum,
   getBridgeQuote,
   getBridgeStatus,
   getL2Balance,
   getTotalPosition
-} from "./chunk-Z2QIZCUK.js";
+} from "./chunk-LRR663PB.js";
 import {
   getBalance,
   getConversionRate,
   getRewards,
   unwrapWsteth,
   wrapSteth
-} from "./chunk-Y3MG4RMT.js";
-import "./chunk-TJ66OXD4.js";
+} from "./chunk-WMGNTYBF.js";
+import "./chunk-P6VFMSPM.js";
 import {
   loadBounds,
   saveBounds
@@ -683,6 +683,16 @@ ${D}              powered by Lido${R}
 function ln(text = "") {
   process.stdout.write(text + "\n");
 }
+function printResponse(text) {
+  const lines = text.split("\n");
+  const prefix = `${B}${GR}moly${R} \u203A `;
+  const indent = "       ";
+  ln();
+  lines.forEach((line, i) => {
+    process.stdout.write((i === 0 ? prefix : indent) + line + "\n");
+  });
+  ln();
+}
 function saveTrade(toolName, args, result) {
   try {
     let txHash;
@@ -742,7 +752,20 @@ async function startChatSession(cfg) {
   const messages = [
     {
       role: "user",
-      content: skillContext + `You are Moly, a terminal assistant for Lido Finance on ${cfg.network}. Mode: ${cfg.mode} (${cfg.mode === "simulation" ? "dry-run, nothing broadcast" : "LIVE - real on-chain transactions"}). Chain scope: ${cfg.chainScope ?? "ethereum"}. You can only do what your tools support: staking ETH, withdrawals, wrap/unwrap stETH/wstETH, balances, rewards, Lido DAO governance${cfg.chainScope === "all" ? ", and L2 bridging from Base/Arbitrum to Ethereum via LI.FI" : ""}. ${cfg.chainScope === "all" ? "If the user wants to stake ETH from Base or Arbitrum, first check their L2 balance with get_l2_balance, then bridge to Ethereum with bridge_to_ethereum, then after bridging completes use stake_eth. Bridge takes 1-20 min, tell user to check with get_bridge_status. " : ""}If asked about anything outside those tools (e.g. Lido Vaults, validators, node operators, DeFi integrations), say clearly and briefly that it is not supported. IMPORTANT: This is a terminal. Never use markdown. No **bold**, no bullet points, no headers, no backticks. Plain text only. Be concise. For live transactions always confirm first.`
+      content: skillContext + `You are Moly, a terminal assistant for Lido Finance on ${cfg.network}.
+Mode: ${cfg.mode} (${cfg.mode === "simulation" ? "dry-run, nothing broadcast" : "LIVE - real on-chain transactions"}).
+Chain scope: ${cfg.chainScope ?? "ethereum"}.
+
+You can only do what your tools support: staking ETH, withdrawals, wrap/unwrap stETH/wstETH, balances, rewards, Lido DAO governance${cfg.chainScope === "all" ? ", and L2 bridging from Base/Arbitrum to Ethereum via LI.FI" : ""}.
+${cfg.chainScope === "all" ? "If the user wants to stake ETH from Base or Arbitrum, first check their L2 balance with get_l2_balance, then bridge to Ethereum with bridge_to_ethereum, then after bridging completes use stake_eth. Bridge takes 1-20 min, tell user to check with get_bridge_status.\n" : ""}If asked about anything outside those tools (e.g. Lido Vaults, validators, node operators, DeFi integrations), say clearly and briefly that it is not supported.
+
+OUTPUT FORMAT RULES (terminal, no markdown):
+- Never use **bold**, _italic_, # headers, or backtick code blocks.
+- Use plain dashes (-) for lists, one item per line.
+- Use blank lines to separate sections or groups of information.
+- For key/value data (balances, settings, etc.) use "  key: value" format, one per line.
+- Keep prose concise. Lead with the answer, then details.
+- For live transactions always confirm with the user first.`
     },
     {
       role: "assistant",
@@ -804,16 +827,12 @@ async function startChatSession(cfg) {
           }
           messages.push(...toolResults);
           if (response.text) {
-            ln();
-            ln(`${B}${GR}moly${R} \u203A ${response.text}`);
-            ln();
+            printResponse(response.text);
           }
           continue;
         }
         if (response.text) {
-          ln();
-          ln(`${B}${GR}moly${R} \u203A ${response.text}`);
-          ln();
+          printResponse(response.text);
         }
         break;
       }

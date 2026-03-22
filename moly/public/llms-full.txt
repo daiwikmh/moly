@@ -1,7 +1,7 @@
 # Moly — Lido MCP Server + Dashboard + CLI
 
 > Connect any MCP-compatible AI agent to the Lido staking protocol on Ethereum.
-> Stake ETH, manage positions, wrap/unwrap tokens, handle withdrawals, and participate in DAO governance through 15 MCP tools.
+> Stake ETH, manage positions, wrap/unwrap tokens, handle withdrawals, and participate in DAO governance through 28 MCP tools.
 
 ## Site Structure
 
@@ -14,7 +14,7 @@
 - /docs/mcp-server — MCP server overview
 - /docs/mcp-server/connect — Connect any agent
 - /docs/mcp-server/code-samples — Code samples
-- /docs/cli — CLI package (npx @moly/lido)
+- /docs/cli — CLI package (npx @moly-mcp/lido)
 - /docs/cli/setup — Setup wizard
 - /docs/cli/configuration — Config reference
 - /docs/tools — All tools overview
@@ -24,7 +24,7 @@
 
 ## MCP Endpoint
 
-URL: https://moly-mcp.vercel.app/api/mcp
+URL: https://moly-lido.vercel.app/api/mcp
 Transport: Streamable HTTP (POST)
 Authentication: None required
 
@@ -34,7 +34,7 @@ Authentication: None required
 - x-lido-network: "testnet" (default) | "mainnet"
 - x-lido-chain: "hoodi" (default for testnet) | "ethereum" (default for mainnet)
 
-## All Tools (15)
+## All Tools (28)
 
 ### Read Tools (7)
 
@@ -126,13 +126,13 @@ Ethereum Mainnet
 
 ## CLI Package
 
-Package: @moly/lido
-Install: npx @moly/lido
+Package: @moly-mcp/lido
+Install: npx @moly-mcp/lido
 Purpose: Interactive setup wizard. Configures Claude Desktop and other MCP clients automatically.
 
 ## Dashboard
 
-URL: https://moly-mcp.vercel.app/dashboard
+URL: https://moly-lido.vercel.app/dashboard
 Features:
 - AI chat powered by Claude (Sonnet)
 - Real-time Lido data sidebar (balances, APR, governance proposals)
@@ -152,6 +152,6 @@ Features:
 ## Source
 
 GitHub: https://github.com/daiwikmh/moly
-Docs: https://moly-mcp.vercel.app/docs
-Dashboard: https://moly-mcp.vercel.app/dashboard
-MCP endpoint: https://moly-mcp.vercel.app/api/mcp
+Docs: https://moly-lido.vercel.app/docs
+Dashboard: https://moly-lido.vercel.app/dashboard
+MCP endpoint: https://moly-lido.vercel.app/api/mcp

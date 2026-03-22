@@ -16,12 +16,13 @@ _Stake ETH. Wrap stETH. Vote on proposals. All from a conversation._
 
 ## What is Moly?
 
-Moly has two parts:
+Moly is an AI-native interface to Lido with three deployment options:
 
-| Component | What it does |
-| --- | --- |
-| **MCP Server** | A Model Context Protocol server with 13 Lido tools. Point Claude, Cursor, or any MCP-compatible AI at it and stake ETH from a chat. |
-| **Dashboard** | A Next.js web app with an embedded AI chat panel, real-time protocol data, and simulation support. |
+| Component | What it does | When to use |
+| --- | --- | --- |
+| **CLI (`@moly-mcp/lido`)** | Terminal-first staking with setup wizard, activity ledger, alerts, and policy bounds | Default choice — local automation, full control |
+| **MCP Server** | Model Context Protocol server for embedding in custom agent setups | When CLI doesn't fit your workflow |
+| **Dashboard** | Next.js web app with embedded AI chat and real-time data | When you prefer a browser interface |
 
 ## Why Moly?
 
@@ -44,19 +45,28 @@ Moly:  Calling stake_eth...
 
 > **Note:** Holesky testnet is deprecated. Moly uses Hoodi for all testnet operations.
 
-## Quick Links
+## Quick Start
 
-<table data-card-size="large" data-view="cards">
-<thead><tr><th></th><th></th></tr></thead>
-<tbody>
-<tr><td><strong>Get Started</strong></td><td>Install Moly in under 2 minutes</td></tr>
-<tr><td><strong>MCP Server Setup</strong></td><td>Connect Claude Code, Desktop, or Cursor</td></tr>
-<tr><td><strong>Tools Reference</strong></td><td>All 13 tools with parameters and examples</td></tr>
-<tr><td><strong>Stake ETH Guide</strong></td><td>End-to-end walkthrough</td></tr>
-</tbody>
-</table>
+1. **[Installation](setup/installation.md)** — `npx @moly-mcp/lido` in under 2 minutes
+2. **[Quick Start](setup/quick-start.md)** — Run the CLI and stake your first ETH
+3. **[Tools Reference](tools/overview.md)** — All 17 tools with parameters and examples
+
+## Using Other Deployment Methods
+
+- **[MCP Server Setup](mcp-server/overview.md)** — Embed in custom agent setups
+- **[Dashboard](dashboard/overview.md)** — Web browser interface
 
 ---
+
+## For AI Agents
+
+Agents can automatically discover and use Moly via:
+
+- **`/skill`** — Web-readable skill document with mental model and workflows
+- **`/api/skill`** — Raw markdown endpoint (Content-Type: text/markdown) for agent integration
+- **All tools** — 28 Lido tools exposed via MCP with dry_run safety by default
+
+Agents should read the skill document first to understand Lido mechanics, governance, withdrawal queue, safe patterns, and policy bounds.
 
 ## Built With
 

@@ -22,7 +22,7 @@ const modeNote = cfg.mode === 'simulation'
   ? 'SIMULATION — dry_run true by default, no real transactions'
   : 'LIVE — real transactions on ' + (cfg.network === 'mainnet' ? 'Ethereum Mainnet' : 'Hoodi Testnet');
 
-const server = new McpServer({ name: '@moly/lido', version: '1.0.0' });
+const server = new McpServer({ name: '@moly-mcp/lido', version: '1.0.0' });
 
 // ── Balance & Info ───────────────────────────────────────────────────────────
 
@@ -371,4 +371,4 @@ server.tool(
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-process.stderr.write(`@moly/lido MCP server started — ${modeNote}\n`);
+process.stderr.write(`@moly-mcp/lido MCP server started — ${modeNote}\n`);

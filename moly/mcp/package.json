@@ -1,10 +1,15 @@
 {
-  "name": "@moly/lido-mcp",
+  "name": "@moly-mcp/lido",
   "version": "0.1.0",
   "type": "module",
+  "description": "MCP server for Lido — stake, unstake, wrap, bridge, and govern from any MCP-compatible AI client",
   "bin": {
     "lido-mcp": "./src/index.ts"
   },
+  "files": [
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "dev": "bun run src/index.ts",
     "start": "bun run src/index.ts",

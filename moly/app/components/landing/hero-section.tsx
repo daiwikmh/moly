@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { AnimatedSphere } from "./animated-sphere";
 
-const words = ["stake", "earn", "govern", "monitor"];
+const words = ["stake", "earn", "connect", "monitor"];
 
 export function HeroSection() {
   const [isVisible, setIsVisible] = useState(false);
@@ -51,10 +51,10 @@ export function HeroSection() {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           }`}
         >
-          <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground">
+          {/* <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground">
             <span className="w-8 h-px bg-foreground/30" />
             Lido MCP Server + Dashboard + CLI
-          </span>
+          </span> */}
         </div>
 
         <div className="mb-12">
@@ -93,7 +93,8 @@ export function HeroSection() {
             }`}
           >
             Connect any AI agent to Lido. Stake ETH, manage positions, and
-            participate in DAO governance through 15 powerful MCP tools.
+            run 28 powerful MCP tools in a single terminal
+            using OWS standard
           </p>
 
           <div
@@ -102,17 +103,17 @@ export function HeroSection() {
             }`}
           >
             <Link
-              href="/dashboard"
+              href="/docs"
               className="inline-flex items-center gap-2 bg-foreground hover:bg-foreground/90 text-background px-8 h-14 text-base rounded-full font-medium group transition-colors"
             >
-              Open Dashboard
+              Open Docs
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link
-              href="/docs"
+              href="/dashboard"
               className="inline-flex items-center justify-center h-14 px-8 text-base rounded-full border border-foreground/20 hover:bg-foreground/5 text-foreground transition-colors"
             >
-              Read Docs
+              Dashboard
             </Link>
           </div>
         </div>
@@ -129,7 +130,7 @@ export function HeroSection() {
               {[
                 { value: "9.3M ETH", label: "staked through Lido", company: "LIDO" },
                 { value: "4.6%", label: "average staking APR", company: "ETHEREUM" },
-                { value: "15 tools", label: "in the MCP server", company: "MOLY" },
+                { value: "28 tools", label: "in the MCP server", company: "MOLY" },
                 { value: "OWS", label: "encrypted key vault", company: "SECURITY" },
               ].map((stat) => (
                 <div key={`${stat.company}-${i}`} className="flex items-baseline gap-4">
