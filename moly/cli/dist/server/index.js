@@ -21,6 +21,10 @@ import {
 } from "../chunk-FNOVBU5L.js";
 import "../chunk-LMW24A22.js";
 import {
+  bridgeToEthereum,
+  getBridgeQuote,
+  getBridgeStatus,
+  getL2Balance,
   getTotalPosition
 } from "../chunk-Z2QIZCUK.js";
 import {
@@ -278,6 +282,55 @@ server.tool(
     saveBounds(current);
     return { content: [{ type: "text", text: JSON.stringify(current, null, 2) }] };
   }
+);
+server.tool(
+  "get_l2_balance",
+  "Get ETH and wstETH balances on Base or Arbitrum. Mainnet only. Use this before bridging to check available funds.",
+  {
+    source_chain: z.enum(["base", "arbitrum"]).describe("L2 chain to query"),
+    address: z.string().optional().describe("Address to check (defaults to configured wallet)")
+  },
+  async ({ source_chain, address }) => ({
+    content: [{ type: "text", text: JSON.stringify(await getL2Balance(source_chain, address), null, 2) }]
+  })
+);
+server.tool(
+  "get_bridge_quote",
+  "Get a quote for bridging ETH or wstETH from an L2 to Ethereum L1 via LI.FI. Mainnet only. Requires a configured wallet address.",
+  {
+    source_chain: z.enum(["base", "arbitrum"]).describe("L2 to bridge from"),
+    token: z.enum(["ETH", "wstETH"]).describe("Token to bridge"),
+    amount: z.string().describe('Amount to bridge (e.g. "0.1")'),
+    to_token: z.enum(["ETH", "wstETH"]).optional().describe("Token to receive on L1 (default ETH)")
+  },
+  async ({ source_chain, token, amount, to_token }) => ({
+    content: [{ type: "text", text: JSON.stringify(await getBridgeQuote(source_chain, token, amount, to_token), null, 2) }]
+  })
+);
+server.tool(
+  "bridge_to_ethereum",
+  "Bridge ETH or wstETH from Base/Arbitrum to Ethereum L1 via LI.FI. Mainnet only. Requires a private key. In simulation mode this returns a quote without broadcasting.",
+  {
+    source_chain: z.enum(["base", "arbitrum"]).describe("L2 to bridge from"),
+    token: z.enum(["ETH", "wstETH"]).describe("Token to bridge"),
+    amount: z.string().describe("Amount to bridge"),
+    to_token: z.enum(["ETH", "wstETH"]).optional().describe("Token to receive on L1 (default ETH)"),
+    dry_run: z.boolean().optional().describe("Simulate without broadcasting")
+  },
+  async ({ source_chain, token, amount, to_token, dry_run }) => ({
+    content: [{ type: "text", text: JSON.stringify(await bridgeToEthereum(source_chain, token, amount, to_token, dry_run), null, 2) }]
+  })
+);
+server.tool(
+  "get_bridge_status",
+  "Check the status of an in-progress bridge transaction. Mainnet only. Use the tx hash returned by bridge_to_ethereum.",
+  {
+    tx_hash: z.string().describe("Bridge transaction hash on the L2"),
+    source_chain: z.enum(["base", "arbitrum"]).describe("L2 the bridge was sent from")
+  },
+  async ({ tx_hash, source_chain }) => ({
+    content: [{ type: "text", text: JSON.stringify(await getBridgeStatus(tx_hash, source_chain), null, 2) }]
+  })
 );
 server.tool(
   "get_trade_history",

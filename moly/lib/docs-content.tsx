@@ -45,6 +45,8 @@ export const NAV: DocSection[] = [
       { slug: "tools/read", title: "Read Tools" },
       { slug: "tools/write", title: "Write Tools" },
       { slug: "tools/governance", title: "Governance" },
+      { slug: "tools/bridge", title: "Bridge (L2)" },
+      { slug: "tools/management", title: "Bounds, Alerts & Ledger" },
     ],
   },
   {
@@ -120,7 +122,7 @@ export const PAGES: Record<string, DocPage> = {
 
         <H2>What You Get</H2>
         <Table headers={["Feature", "Description"]} rows={[
-          ["13 Tools", "Balance queries, staking, wrapping, withdrawals, governance"],
+          ["28 Tools", "Balance, staking, wrapping, withdrawals, governance, bridging, alerts, bounds, ledger"],
           ["Dual Mode", "Simulation (dry-run) and Live (real transactions)"],
           ["Multi-Chain", "Hoodi testnet and Ethereum mainnet"],
           ["Hosted Server", "HTTP MCP endpoint — just add the URL, zero setup"],
@@ -147,7 +149,7 @@ export const PAGES: Record<string, DocPage> = {
         <UL items={[
           <><a href="/docs/mcp-server">MCP Server</a> — configuration, custom headers, self-hosting</>,
           <><a href="/docs/mcp-server/claude-code">Claude Code Setup</a> — detailed walkthrough</>,
-          <><a href="/docs/tools">Tools Reference</a> — all 13 tools documented</>,
+          <><a href="/docs/tools">Tools Reference</a> — all 28 tools documented</>,
           <><a href="/docs/guides/stake-eth">Stake ETH Guide</a> — your first staking interaction</>,
           <><a href="/docs/cli">CLI Package</a> — run a local MCP server with npx</>,
         ]} />
@@ -182,7 +184,7 @@ export const PAGES: Record<string, DocPage> = {
         <Pre>{`Show me recent governance proposals`}</Pre>
 
         <H2>Dashboard</H2>
-        <P>You can also use Moly through the web dashboard at <strong>moly-mcp.vercel.app</strong> — it has an AI chat interface with the same 13 tools built in, plus a sidebar showing live balances and protocol stats.</P>
+        <P>You can also use Moly through the web dashboard at <strong>moly-mcp.vercel.app</strong> — it has an AI chat interface with the same 17 tools built in, plus a sidebar showing live balances and protocol stats.</P>
 
         <H2>Defaults</H2>
         <Table headers={["Setting", "Default", "Change via"]} rows={[
@@ -263,7 +265,7 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
           <><strong>OpenRouter</strong> — LLM gateway for the dashboard chat</>,
         ]} />
         <H2>How Tools Work</H2>
-        <P>All 13 tools use raw viem contract calls against Lido&apos;s deployed contracts. Read tools call <Code>eth_call</Code> directly. Write tools return simulation results (gas estimates, expected outputs) — the hosted server never holds private keys and never broadcasts transactions.</P>
+        <P>All tools use raw viem contract calls against Lido&apos;s deployed contracts. Read tools call <Code>eth_call</Code> directly. Write tools return simulation results (gas estimates, expected outputs) — the hosted server never holds private keys and never broadcasts transactions.</P>
         <P>Configuration (mode, network, chain) is passed via HTTP headers on each MCP request, making the server fully stateless.</P>
       </>
     ),
@@ -311,7 +313,7 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
           ["x-lido-chain", "hoodi, ethereum", "auto from network"],
         ]} />
 
-        <H2>Tools (13)</H2>
+        <H2>Tools (17)</H2>
         <H3>Read Tools (7)</H3>
         <Table headers={["Tool", "Description"]} rows={[
           ["get_balance", "ETH, stETH, wstETH balances"],
@@ -331,11 +333,18 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
           ["unwrap_wsteth", "Unwrap wstETH → stETH"],
           ["cast_vote", "Vote on DAO proposal"],
         ]} />
+        <H3>Bridge Tools (4, mainnet only)</H3>
+        <Table headers={["Tool", "Description"]} rows={[
+          ["get_l2_balance", "ETH and wstETH balances on Base or Arbitrum"],
+          ["get_bridge_quote", "Quote for bridging to Ethereum L1 via LI.FI"],
+          ["bridge_to_ethereum", "Bridge ETH or wstETH from L2 to L1 (supports dry_run)"],
+          ["get_bridge_status", "Check status of in-progress bridge transaction"],
+        ]} />
 
         <H2>Verify</H2>
         <P>After adding the config, ask your AI assistant:</P>
         <Pre>{`What Lido tools are available?`}</Pre>
-        <P>It should list all 13 tools. Then try:</P>
+        <P>It should list all available tools. Then try:</P>
         <Pre>{`What's the stETH balance for 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18?`}</Pre>
       </>
     ),
@@ -395,7 +404,7 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
         <H2>Verify</H2>
         <P>After adding the config, restart your agent and ask:</P>
         <Pre>{`What Lido tools are available?`}</Pre>
-        <P>You should see all 13 tools. Then try:</P>
+        <P>You should see all available tools. Then try:</P>
         <Pre>{`What's the stETH balance for 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18?`}</Pre>
 
         <H2>Example Conversations</H2>
@@ -653,30 +662,68 @@ Agent: [calls get_balance] → [calls get_conversion_rate]
 
   tools: {
     title: "Tools Reference",
-    description: "All 13 Lido tools available in Moly",
+    description: "All 28 Lido tools available in Moly",
     content: (
       <>
-        <P>Moly exposes 13 tools — 7 read-only queries and 6 write operations. All tools work in both the MCP server and the dashboard chat.</P>
+        <P>Moly exposes 28 tools across the CLI and MCP server. The dashboard exposes 17 of these (13 Lido core + 4 bridge). The CLI adds settings, bounds, ledger, position, and alert tools on top.</P>
         <H2>Read Tools (7)</H2>
         <Table headers={["Tool", "Parameters", "Returns"]} rows={[
-          ["get_balance", "address", "ETH, stETH, wstETH balances"],
-          ["get_rewards", "address", "Reward history with APR"],
+          ["get_balance", "address?", "ETH, stETH, wstETH balances"],
+          ["get_rewards", "address?, days?", "Reward history with APR"],
           ["get_conversion_rate", "(none)", "stETH ↔ wstETH rate"],
-          ["get_withdrawal_requests", "address", "Pending request IDs"],
+          ["get_withdrawal_requests", "address?", "Pending request IDs"],
           ["get_withdrawal_status", "request_ids", "Status per request"],
-          ["get_proposals", "limit?, offset?", "Recent DAO proposals"],
+          ["get_proposals", "count?", "Recent DAO proposals"],
           ["get_proposal", "proposal_id", "Full proposal details"],
         ]} />
         <H2>Write Tools (6)</H2>
         <Table headers={["Tool", "Parameters", "Returns"]} rows={[
-          ["stake_eth", "amount, dry_run?", "stETH received, gas estimate"],
-          ["request_withdrawal", "amount, dry_run?", "Request ID, queue position"],
+          ["stake_eth", "amount_eth, dry_run?", "stETH received, gas estimate"],
+          ["request_withdrawal", "amount_steth, dry_run?", "Request ID, queue position"],
           ["claim_withdrawals", "request_ids, dry_run?", "ETH claimed"],
-          ["wrap_steth", "amount, dry_run?", "wstETH received"],
-          ["unwrap_wsteth", "amount, dry_run?", "stETH received"],
+          ["wrap_steth", "amount_steth, dry_run?", "wstETH received"],
+          ["unwrap_wsteth", "amount_wsteth, dry_run?", "stETH received"],
           ["cast_vote", "proposal_id, support, dry_run?", "Vote confirmation"],
         ]} />
         <Callout type="info">In simulation mode, all write tools automatically run as dry-run. Pass <Code>dry_run: false</Code> to override (MCP server only).</Callout>
+        <H2>Bridge Tools (4, mainnet only)</H2>
+        <P>Bridge ETH or wstETH from Base/Arbitrum to Ethereum L1 via the LI.FI protocol. These tools only work on mainnet.</P>
+        <Table headers={["Tool", "Parameters", "Returns"]} rows={[
+          ["get_l2_balance", "source_chain, address?", "ETH and wstETH balances on the L2"],
+          ["get_bridge_quote", "source_chain, token, amount, to_token?", "Quote with estimated output, duration, fees"],
+          ["bridge_to_ethereum", "source_chain, token, amount, to_token?, dry_run?", "Bridge tx hash (or simulation result)"],
+          ["get_bridge_status", "tx_hash, source_chain", "Bridge progress: pending, in-progress, complete"],
+        ]} />
+        <Callout type="tip">Typical bridge flow: check balance with <Code>get_l2_balance</Code>, get a quote with <Code>get_bridge_quote</Code>, execute with <Code>bridge_to_ethereum</Code>, then track with <Code>get_bridge_status</Code>. Bridges take 1-20 minutes.</Callout>
+        <H2>Settings Tools (2)</H2>
+        <Table headers={["Tool", "Parameters", "Returns"]} rows={[
+          ["get_settings", "(none)", "Current mode, network, RPC (keys redacted)"],
+          ["update_settings", "network?, mode?, rpc?, model?", "Updated config"],
+        ]} />
+        <H2>Bounds Tools (2)</H2>
+        <P>Policy bounds gate all write operations. The agent cannot exceed these limits.</P>
+        <Table headers={["Tool", "Parameters", "Returns"]} rows={[
+          ["get_bounds", "(none)", "Current limits: max stake per tx, daily cap, gas reserve, governance auto-vote"],
+          ["set_bounds", "maxStakePerTx?, maxDailyStake?, minEthReserve?, autoRestakeThreshold?, governanceAutoVote?", "Updated bounds"],
+        ]} />
+        <H2>Position Tool (1)</H2>
+        <Table headers={["Tool", "Parameters", "Returns"]} rows={[
+          ["get_total_position", "address?", "Cross-chain aggregated position: ETH + stETH + wstETH across Ethereum, Base, Arbitrum"],
+        ]} />
+        <H2>Ledger Tools (2)</H2>
+        <P>Every tool execution is logged to a SQLite ledger for auditability.</P>
+        <Table headers={["Tool", "Parameters", "Returns"]} rows={[
+          ["get_trade_history", "tool?, since?, limit?", "Filtered activity log entries"],
+          ["get_staking_summary", "since?", "Aggregate stats: total ops, staked ETH, errors"],
+        ]} />
+        <H2>Alert Tools (4)</H2>
+        <P>Configure alerts that trigger via Telegram or webhook when conditions are met. Requires the monitor daemon running (<Code>moly monitor start</Code>).</P>
+        <Table headers={["Tool", "Parameters", "Returns"]} rows={[
+          ["set_alert", "condition, threshold?, channel?", "Created alert with ID"],
+          ["list_alerts", "(none)", "All configured alerts"],
+          ["remove_alert", "id", "Removal confirmation"],
+          ["configure_alert_channels", "telegram_token?, telegram_chat_id?, webhook_url?", "Updated channel config"],
+        ]} />
       </>
     ),
   },
@@ -792,6 +839,157 @@ Agent: [calls get_balance] → [calls get_conversion_rate]
   "dry_run": true
 }`}</Pre>
         <Callout type="info">Voting requires holding LDO tokens. The vote weight equals your LDO balance at the proposal snapshot block.</Callout>
+      </>
+    ),
+  },
+
+  "tools/bridge": {
+    title: "Bridge Tools",
+    description: "Bridge ETH and wstETH from L2 to Ethereum L1",
+    content: (
+      <>
+        <Callout type="warning">Bridge tools only work on mainnet. They use the LI.FI protocol to route cross-chain transfers. Testnets are not supported.</Callout>
+
+        <H2>get_l2_balance</H2>
+        <P>Returns ETH and wstETH balances on an L2 chain. Use this before bridging to check available funds.</P>
+        <Pre title="Parameters">{`{
+  "source_chain": "base",
+  "address": "0x..."
+}`}</Pre>
+        <Pre title="Response">{`{
+  "address": "0x...",
+  "chain": "Base",
+  "chainId": 8453,
+  "balances": { "ETH": "0.5", "wstETH": "1.2" }
+}`}</Pre>
+
+        <H2>get_bridge_quote</H2>
+        <P>Gets a quote for bridging tokens from an L2 to Ethereum L1. Requires a configured wallet address for routing.</P>
+        <Pre title="Parameters">{`{
+  "source_chain": "arbitrum",
+  "token": "wstETH",
+  "amount": "0.5",
+  "to_token": "ETH"
+}`}</Pre>
+        <Pre title="Response">{`{
+  "sourceChain": "Arbitrum One",
+  "token": "wstETH",
+  "amount": "0.5",
+  "toToken": "ETH",
+  "toAmount": "0.5742",
+  "estimatedDuration": "3 min",
+  "tool": "across"
+}`}</Pre>
+
+        <H2>bridge_to_ethereum</H2>
+        <P>Executes a bridge transaction from Base or Arbitrum to Ethereum L1. Requires a private key. In simulation mode, returns a quote without broadcasting.</P>
+        <Pre title="Parameters">{`{
+  "source_chain": "base",
+  "token": "ETH",
+  "amount": "0.1",
+  "dry_run": true
+}`}</Pre>
+        <Callout type="info">For wstETH bridging, the tool handles ERC-20 approval automatically before sending the bridge transaction.</Callout>
+
+        <H2>get_bridge_status</H2>
+        <P>Checks the status of an in-progress bridge transaction. Use the tx hash returned by bridge_to_ethereum.</P>
+        <Pre title="Parameters">{`{
+  "tx_hash": "0xabc...",
+  "source_chain": "base"
+}`}</Pre>
+        <Pre title="Response">{`{
+  "txHash": "0xabc...",
+  "sourceChain": "Base",
+  "status": "DONE",
+  "sending": { "txHash": "0xabc...", "amount": "100000000000000000" },
+  "receiving": { "txHash": "0xdef...", "amount": "99500000000000000" }
+}`}</Pre>
+        <Callout type="tip">Bridges typically take 1-20 minutes. Poll with get_bridge_status until status is DONE.</Callout>
+      </>
+    ),
+  },
+
+  "tools/management": {
+    title: "Bounds, Alerts & Ledger",
+    description: "Policy bounds, alert monitoring, position tracking, and activity ledger",
+    content: (
+      <>
+        <H2>Policy Bounds</H2>
+        <P>Bounds gate all write operations. The agent cannot exceed these limits, preventing runaway transactions.</P>
+
+        <H3>get_bounds</H3>
+        <P>Returns the current policy bounds.</P>
+        <Pre title="Response">{`{
+  "maxStakePerTx": 10,
+  "maxDailyStake": 50,
+  "minEthReserve": 0.5,
+  "autoRestakeThreshold": 0.05,
+  "governanceAutoVote": false
+}`}</Pre>
+
+        <H3>set_bounds</H3>
+        <P>Updates one or more policy bounds. Only pass the fields you want to change.</P>
+        <Pre title="Parameters">{`{
+  "maxStakePerTx": 2.0,
+  "minEthReserve": 0.3,
+  "governanceAutoVote": true
+}`}</Pre>
+        <Callout type="info">If <Code>governanceAutoVote</Code> is false, the agent cannot call <Code>cast_vote</Code>. Set it to true to allow autonomous voting.</Callout>
+
+        <H2>Cross-chain Position</H2>
+
+        <H3>get_total_position</H3>
+        <P>Returns an aggregated position across Ethereum mainnet, Base, and Arbitrum, all converted to ETH equivalent.</P>
+        <Pre title="Parameters">{`{ "address": "0x..." }`}</Pre>
+
+        <H2>Alerts</H2>
+        <P>Alerts fire via Telegram or webhook when conditions are met. Requires the monitor daemon (<Code>moly monitor start</Code>).</P>
+
+        <H3>set_alert</H3>
+        <P>Creates a new alert rule. Supported conditions:</P>
+        <Table headers={["Condition", "Threshold", "Fires when"]} rows={[
+          ["balance_below", "ETH amount", "ETH balance drops below threshold"],
+          ["balance_above", "ETH amount", "ETH balance rises above threshold"],
+          ["reward_rate_below", "Rate", "Staking reward rate drops below threshold"],
+          ["reward_rate_above", "Rate", "Staking reward rate rises above threshold"],
+          ["withdrawal_ready", "None", "Any pending withdrawal is finalized"],
+          ["proposal_new", "None", "A new governance proposal is created"],
+          ["conversion_rate_above", "Rate", "stETH/wstETH rate exceeds threshold"],
+          ["conversion_rate_below", "Rate", "stETH/wstETH rate drops below threshold"],
+          ["reward_delta", "ETH amount", "Reward change exceeds threshold"],
+          ["governance_expiring", "None", "A governance vote is about to expire"],
+        ]} />
+        <Pre title="Parameters">{`{
+  "condition": "balance_below",
+  "threshold": 1.0,
+  "channel": "telegram"
+}`}</Pre>
+
+        <H3>list_alerts / remove_alert</H3>
+        <P><Code>list_alerts</Code> returns all configured alerts. <Code>remove_alert</Code> takes an alert ID to delete it.</P>
+
+        <H3>configure_alert_channels</H3>
+        <P>Sets up Telegram or webhook notification channels.</P>
+        <Pre title="Parameters">{`{
+  "telegram_token": "123456:ABC...",
+  "telegram_chat_id": "-100123456",
+  "webhook_url": "https://example.com/hook"
+}`}</Pre>
+
+        <H2>Activity Ledger</H2>
+        <P>Every tool execution is logged to a SQLite database for auditability.</P>
+
+        <H3>get_trade_history</H3>
+        <P>Query the ledger with optional filters by tool name, date range, and result limit.</P>
+        <Pre title="Parameters">{`{
+  "tool": "stake_eth",
+  "since": "2026-01-01",
+  "limit": 20
+}`}</Pre>
+
+        <H3>get_staking_summary</H3>
+        <P>Returns aggregate stats: total operations, total ETH staked, error count.</P>
+        <Pre title="Parameters">{`{ "since": "2026-01-01" }`}</Pre>
       </>
     ),
   },
@@ -957,7 +1155,7 @@ Agent: [calls cast_vote]
       <>
         <H2>General</H2>
         <H3>What is Moly?</H3>
-        <P>Moly is an open-source project that makes the Lido staking protocol accessible through AI assistants. It includes an MCP server (13 tools over stdio) and a web dashboard with an AI chat interface.</P>
+        <P>Moly is an open-source project that makes the Lido staking protocol accessible through AI assistants. It includes an MCP server (28 tools over stdio) and a web dashboard with an AI chat interface.</P>
         <H3>Is Moly safe to use?</H3>
         <P>In simulation mode (the default), all write operations are dry-runs — no real transactions are sent. The dashboard never holds private keys. Only the MCP server in live mode can send real transactions.</P>
         <H3>Which AI models does it work with?</H3>
@@ -1048,7 +1246,7 @@ npx @moly/lido`}</Pre>
 }`}</Pre>
 
         <H2>Available tools</H2>
-        <P>Once connected, your AI client has access to all 15 Lido tools:</P>
+        <P>Once connected, your AI client has access to all 28 tools:</P>
         <Table
           headers={["Tool", "Type", "Description"]}
           rows={[
@@ -1059,6 +1257,10 @@ npx @moly/lido`}</Pre>
             ["get_withdrawal_status", "Read", "Finalization status per request"],
             ["get_proposals", "Read", "Recent Lido DAO proposals"],
             ["get_proposal", "Read", "Single proposal details"],
+            ["get_total_position", "Read", "Cross-chain aggregated position (ETH + Base + Arbitrum)"],
+            ["get_bounds", "Read", "Current policy bounds"],
+            ["get_trade_history", "Read", "Query activity ledger with filters"],
+            ["get_staking_summary", "Read", "Aggregate ledger stats"],
             ["get_settings", "Read", "Current mode, network, RPC"],
             ["stake_eth", "Write", "Stake ETH → receive stETH"],
             ["request_withdrawal", "Write", "Enter Lido withdrawal queue"],
@@ -1066,11 +1268,20 @@ npx @moly/lido`}</Pre>
             ["wrap_steth", "Write", "stETH → wstETH"],
             ["unwrap_wsteth", "Write", "wstETH → stETH"],
             ["cast_vote", "Write", "Vote on Lido DAO proposal"],
+            ["set_bounds", "Write", "Update policy bounds"],
             ["update_settings", "Write", "Change mode/network/RPC mid-conversation"],
+            ["get_l2_balance", "Bridge", "L2 balances on Base or Arbitrum (mainnet only)"],
+            ["get_bridge_quote", "Bridge", "Quote for bridging to Ethereum L1"],
+            ["bridge_to_ethereum", "Bridge", "Bridge ETH/wstETH from L2 to L1"],
+            ["get_bridge_status", "Bridge", "Track in-progress bridge transaction"],
+            ["set_alert", "Alert", "Create alert rule"],
+            ["list_alerts", "Alert", "List all configured alerts"],
+            ["remove_alert", "Alert", "Remove alert by ID"],
+            ["configure_alert_channels", "Alert", "Set Telegram/webhook notification config"],
           ]}
         />
         <Callout type="info">
-          All write tools support <Code>dry_run</Code>. In simulation mode, dry_run defaults to true — nothing is ever broadcast unless you explicitly set it to false and switch to live mode.
+          All write tools support <Code>dry_run</Code>. In simulation mode, dry_run defaults to true — nothing is ever broadcast unless you explicitly set it to false and switch to live mode. Bridge tools only work on mainnet.
         </Callout>
       </>
     ),

@@ -11,7 +11,7 @@ A complete platform for AI agents to interact with the [Lido](https://lido.fi) l
 | | What | For who |
 |---|---|---|
 | [`@moly-mcp/lido`](#-cli-package-molylido) | `npx @moly-mcp/lido` — zero-config MCP server | Any developer with Claude Desktop, Cursor, or Windsurf |
-| [MCP Server](#-mcp-server-stdio) | Bun-based stdio MCP server (13 tools) | Developers embedding Lido in custom agent setups |
+| [MCP Server](#-mcp-server-stdio) | Bun-based stdio MCP server (17 tools) | Developers embedding Lido in custom agent setups |
 | [Dashboard](#-dashboard) | Next.js agentic chat UI with dual MCP interface | End users who want a web interface |
 
 ---
@@ -23,10 +23,10 @@ A complete platform for AI agents to interact with the [Lido](https://lido.fi) l
 The dashboard serves as **both** a web application **and** an MCP server simultaneously:
 
 - **Web Chat** (`/api/chat`) — Users interact with Lido through a conversational AI powered by OpenRouter
-- **MCP Endpoint** (`/api/mcp`) — External AI agents (Claude Desktop, Cursor, etc.) connect to the same 13 Lido tools via the Model Context Protocol over HTTP
+- **MCP Endpoint** (`/api/mcp`) — External AI agents (Claude Desktop, Cursor, etc.) connect to the same 17 Lido tools via the Model Context Protocol over HTTP
 - **Shared Backend** — Both interfaces use the identical tool functions in [`lib/lido.ts`](https://github.com/daiwikmh/moly/blob/main/moly/lib/lido.ts), so behavior is always consistent
 - **Header-based Config** — The MCP endpoint reads `x-lido-mode`, `x-lido-network`, and `x-lido-chain` headers to configure per-request behavior
-- **Discovery** — `GET /api/mcp` returns a JSON manifest listing all 13 tools, configuration options, and a quickstart guide
+- **Discovery** — `GET /api/mcp` returns a JSON manifest listing all 17 tools, configuration options, and a quickstart guide
 
 > This means a developer can point Claude Desktop at the running dashboard AND use the web UI at the same time — both hit the same Lido tools.
 
@@ -190,9 +190,9 @@ Open http://localhost:3000
 
 ---
 
-## Tools (22 total)
+## Tools (28 total)
 
-All packages expose the same Lido toolset. The CLI adds settings, bounds, ledger, position, and alert tools.
+All packages expose the same Lido toolset. The CLI adds settings, bounds, ledger, position, bridge, and alert tools.
 
 ### Read Tools
 
@@ -224,6 +224,15 @@ All packages expose the same Lido toolset. The CLI adds settings, bounds, ledger
 | `set_bounds` | Update policy bounds that gate write operations | [`bounds/store.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/bounds/store.ts) |
 | `update_settings` | Change mode/network/RPC mid-conversation | [`settings.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/settings.ts) |
 
+### Bridge Tools (mainnet only, L2 to L1 via LI.FI)
+
+| Tool | Description | Source |
+|---|---|---|
+| `get_l2_balance` | ETH and wstETH balances on Base or Arbitrum. Use before bridging to check funds | [`bridge.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/bridge.ts) |
+| `get_bridge_quote` | Quote for bridging ETH or wstETH from L2 to Ethereum L1. Requires configured wallet | [`bridge.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/bridge.ts) |
+| `bridge_to_ethereum` | Bridge ETH or wstETH from Base/Arbitrum to L1. Requires private key. Dry-run in simulation | [`bridge.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/bridge.ts) |
+| `get_bridge_status` | Check status of an in-progress bridge tx. Use the hash from bridge_to_ethereum | [`bridge.ts`](https://github.com/daiwikmh/moly/blob/main/moly/cli/src/tools/bridge.ts) |
+
 ### Alert Tools
 
 | Tool | Description | Source |
@@ -252,7 +261,7 @@ In simulation mode, `dry_run` defaults to `true` — nothing is ever broadcast u
 
 ```mermaid
 flowchart TD
-    A[AI Agent\nOpenRouter / Claude / Cursor] -->|MCP / stdio| B[Moly MCP Server\n22 Lido tools]
+    A[AI Agent\nOpenRouter / Claude / Cursor] -->|MCP / stdio| B[Moly MCP Server\n28 Lido tools]
     B --> BA{checkBounds}
     BA -->|blocked| BB[Reject with reason]
     BA -->|allowed| C{resolveAccount}
