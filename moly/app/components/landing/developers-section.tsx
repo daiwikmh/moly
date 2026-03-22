@@ -26,7 +26,7 @@ const endpoint =
   },
   {
     label: "Tools",
-    code: `// 28 available MCP tools
+    code: `// 17 available MCP tools
 get_balance({ address })
 get_proposals({ count: 5 })
 get_conversion_rate()
@@ -38,7 +38,7 @@ request_withdrawal({ amount: "0.5" })`,
 ];
 
 const features = [
-  { title: "28 MCP tools", description: "Full Lido protocol coverage." },
+  { title: "17 MCP tools", description: "Full Lido protocol coverage." },
   { title: "Simulation mode", description: "Test every action before broadcast." },
   { title: "Dual network", description: "Hoodi testnet and Ethereum mainnet." },
   { title: "OWS vault", description: "Encrypted keys via Open Wallet Standard." },

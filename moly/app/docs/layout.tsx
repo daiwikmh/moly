@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { NAV } from "@/lib/docs-content";
+import { Search } from "./search";
 
 const SIDEBAR: Array<{
   label: string;
@@ -73,6 +73,13 @@ const SIDEBAR: Array<{
       { title: "Governance Voting", href: "/docs/guides/governance" },
     ],
   },
+  {
+    label: "Reference",
+    items: [
+      { title: "Supported Chains", href: "/docs/chains" },
+      { title: "FAQ", href: "/docs/faq" },
+    ],
+  },
 ];
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
@@ -80,7 +87,6 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="docs-layout-v2">
-      {/* Top nav */}
       <nav className="docs-topnav">
         <div className="docs-topnav-inner">
           <div className="docs-topnav-left">
@@ -92,6 +98,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             <span className="docs-topnav-section">Docs</span>
           </div>
           <div className="docs-topnav-right">
+            <Search />
             <a
               href="https://www.npmjs.com/package/@moly-mcp/lido"
               target="_blank"
@@ -113,14 +120,12 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
       </nav>
 
       <div className="docs-body">
-        {/* Sidebar */}
         <aside className="docs-sidebar-v2">
           {SIDEBAR.map((section) => (
             <div key={section.label} className="docs-sidebar-section">
               <div className="docs-sidebar-label">{section.label}</div>
               {section.items.map((item) => {
                 const isActive = pathname === item.href;
-                const childActive = item.children?.some((c) => pathname === c.href);
                 return (
                   <div key={item.href}>
                     <Link
@@ -129,7 +134,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
                     >
                       {item.title}
                     </Link>
-                    {item.children && (isActive || childActive) && (
+                    {item.children && (
                       <div className="docs-sidebar-children">
                         {item.children.map((child) => (
                           <Link
@@ -149,7 +154,6 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           ))}
         </aside>
 
-        {/* Content */}
         <main className="docs-main-v2">{children}</main>
       </div>
     </div>

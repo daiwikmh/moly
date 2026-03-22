@@ -1041,7 +1041,7 @@ body {
   --docs-neon-dim:   rgba(0, 255, 170, 0.08);
   --docs-neon-glow:  0 0 12px rgba(0, 255, 170, 0.4);
   --docs-neon-glow-sm: 0 0 6px rgba(0, 255, 170, 0.25);
-  --docs-text:       #e8e8f0;
+  --docs-text:       #ffffff;
   --docs-text-muted: #8888aa;
   --docs-text-dim:   #44445a;
 }
@@ -1179,50 +1179,150 @@ body {
 
 .docs-sidebar-link {
   display: block;
-  padding: 0.375rem 1rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
   font-size: 0.875rem;
   color: var(--docs-text-muted);
   text-decoration: none;
   border-left: 2px solid transparent;
-  transition: all 0.12s;
+  transition: all 0.15s;
 }
 
 .docs-sidebar-link:hover {
-  color: var(--docs-text);
-  background: var(--docs-neon-dim);
-  border-left-color: rgba(0, 255, 170, 0.3);
+  color: var(--docs-neon);
+  background: rgba(0, 255, 170, 0.05);
+  border-left-color: var(--docs-neon);
 }
 
 .docs-sidebar-link-active {
   color: var(--docs-neon) !important;
+  background: rgba(0, 255, 170, 0.08) !important;
   border-left-color: var(--docs-neon) !important;
-  background: var(--docs-neon-dim) !important;
   font-weight: 500;
 }
 
 .docs-sidebar-children {
-  margin: 0.25rem 0 0.5rem;
+  margin: 0.125rem 0 0.25rem 1rem;
 }
 
 .docs-sidebar-child {
   display: block;
-  padding: 0.25rem 1rem 0.25rem 1.75rem;
-  font-size: 0.8125rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   color: var(--docs-text-dim);
   text-decoration: none;
   border-left: 2px solid transparent;
-  transition: all 0.12s;
+  transition: all 0.15s;
 }
 
 .docs-sidebar-child:hover {
-  color: var(--docs-text-muted);
-  border-left-color: rgba(0, 255, 170, 0.2);
+  color: var(--docs-neon);
+  border-left-color: var(--docs-neon);
 }
 
 .docs-sidebar-child-active {
   color: var(--docs-neon) !important;
   border-left-color: var(--docs-neon) !important;
   font-weight: 500;
+}
+
+/* ── Search ── */
+
+.docs-search-wrap {
+  position: relative;
+}
+
+.docs-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  background: var(--docs-bg-card);
+  border: 1px solid var(--docs-border);
+  color: var(--docs-text-dim);
+  font-size: 0.875rem;
+  cursor: pointer;
+  width: 13rem;
+  transition: border-color 0.15s;
+}
+
+.docs-search-btn:hover {
+  border-color: rgba(0, 255, 170, 0.3);
+}
+
+.docs-search-placeholder {
+  flex: 1;
+  text-align: left;
+}
+
+.docs-search-kbd {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.625rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  background: var(--docs-bg-input);
+  border: 1px solid var(--docs-border);
+  color: var(--docs-text-dim);
+}
+
+.docs-search-dropdown {
+  position: absolute;
+  top: 100%;
+  margin-top: 0.5rem;
+  left: 0;
+  width: 18rem;
+  background: var(--docs-bg-card);
+  border: 1px solid var(--docs-border);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  z-index: 50;
+}
+
+.docs-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--docs-border);
+  font-size: 0.875rem;
+  color: var(--docs-text);
+  outline: none;
+}
+
+.docs-search-input::placeholder {
+  color: var(--docs-text-dim);
+}
+
+.docs-search-results {
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.docs-search-result {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: var(--docs-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.1s, background 0.1s;
+}
+
+.docs-search-result:hover {
+  color: var(--docs-neon);
+  background: rgba(0, 255, 170, 0.05);
+}
+
+.docs-search-empty {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--docs-text-dim);
 }
 
 /* ── Main content v2 ── */
@@ -1484,7 +1584,7 @@ body {
 
 .docs-p {
   font-size: 0.9375rem;
-  color: var(--docs-text-muted);
+  color: var(--docs-text);
   margin: 0.75rem 0;
   line-height: 1.7;
 }
@@ -1496,7 +1596,7 @@ body {
 
 .docs-ul li {
   font-size: 0.9375rem;
-  color: var(--docs-text-muted);
+  color: var(--docs-text);
   margin-bottom: 0.375rem;
   line-height: 1.6;
 }
@@ -1634,7 +1734,7 @@ body {
 .docs-table td {
   padding: 0.5rem 0.875rem;
   border-bottom: 1px solid var(--docs-border);
-  color: var(--docs-text-muted);
+  color: var(--docs-text);
 }
 
 .docs-table tr:last-child td {

@@ -93,7 +93,7 @@ export function HeroSection() {
             }`}
           >
             Connect any AI agent to Lido. Stake ETH, manage positions, and
-            run 28 powerful MCP tools in a single terminal
+            run 17 powerful MCP tools in a single terminal
             using OWS standard
           </p>
 
@@ -130,7 +130,7 @@ export function HeroSection() {
               {[
                 { value: "9.3M ETH", label: "staked through Lido", company: "LIDO" },
                 { value: "4.6%", label: "average staking APR", company: "ETHEREUM" },
-                { value: "28 tools", label: "in the MCP server", company: "MOLY" },
+                { value: "17 tools", label: "in the MCP server", company: "MOLY" },
                 { value: "OWS", label: "encrypted key vault", company: "SECURITY" },
               ].map((stat) => (
                 <div key={`${stat.company}-${i}`} className="flex items-baseline gap-4">
