@@ -149,7 +149,7 @@ export const PAGES: Record<string, DocPage> = {
         <UL items={[
           <><a href="/docs/mcp-server">MCP Server</a> — configuration, custom headers, self-hosting</>,
           <><a href="/docs/mcp-server/claude-code">Claude Code Setup</a> — detailed walkthrough</>,
-          <><a href="/docs/tools">Tools Reference</a> — all tools documented</>,
+          <><a href="/docs/tools">Tools Reference</a> — all 28 tools documented</>,
           <><a href="/docs/guides/stake-eth">Stake ETH Guide</a> — your first staking interaction</>,
           <><a href="/docs/cli">CLI Package</a> — run a local MCP server with npx</>,
         ]} />
@@ -662,10 +662,10 @@ Agent: [calls get_balance] → [calls get_conversion_rate]
 
   tools: {
     title: "Tools Reference",
-    description: "All Lido tools available in Moly",
+    description: "All 28 Lido tools available in Moly",
     content: (
       <>
-        <P>Moly exposes 17 tools via the MCP server and 28 total across the CLI. The dashboard exposes the same 17 MCP tools (13 Lido core + 4 bridge). The CLI adds settings, bounds, ledger, position, and alert tools on top.</P>
+        <P>Moly exposes 28 tools across the CLI and MCP server. The dashboard exposes 17 of these (13 Lido core + 4 bridge). The CLI adds settings, bounds, ledger, position, and alert tools on top.</P>
         <H2>Read Tools (7)</H2>
         <Table headers={["Tool", "Parameters", "Returns"]} rows={[
           ["get_balance", "address?", "ETH, stETH, wstETH balances"],
@@ -1155,7 +1155,7 @@ Agent: [calls cast_vote]
       <>
         <H2>General</H2>
         <H3>What is Moly?</H3>
-        <P>Moly is an open-source project that makes the Lido staking protocol accessible through AI assistants. It includes an MCP server (17 tools over stdio) and a web dashboard with an AI chat interface.</P>
+        <P>Moly is an open-source project that makes the Lido staking protocol accessible through AI assistants. It includes an MCP server (28 tools over stdio) and a web dashboard with an AI chat interface.</P>
         <H3>Is Moly safe to use?</H3>
         <P>In simulation mode (the default), all write operations are dry-runs — no real transactions are sent. The dashboard never holds private keys. Only the MCP server in live mode can send real transactions.</P>
         <H3>Which AI models does it work with?</H3>
@@ -1246,7 +1246,7 @@ npx @moly-mcp/lido`}</Pre>
 }`}</Pre>
 
         <H2>Available tools</H2>
-        <P>Once connected, your AI client has access to all 17 MCP tools:</P>
+        <P>Once connected, your AI client has access to all 28 tools:</P>
         <Table
           headers={["Tool", "Type", "Description"]}
           rows={[
