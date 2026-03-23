@@ -104,19 +104,19 @@ export const PAGES: Record<string, DocPage> = {
     description: "AI-native Lido staking interface — MCP server + chat dashboard",
     content: (
       <>
-        <P>Moly is an open-source project that brings the Lido staking protocol to AI assistants via the Model Context Protocol (MCP). Point any MCP-compatible AI tool at the hosted server and start interacting with Lido — no installation required.</P>
+        <P>Moly is an open-source project that brings the Lido staking protocol to AI assistants via the Model Context Protocol (MCP). Install the CLI, run the setup wizard, and your AI agent gets 28 Lido tools instantly.</P>
 
         <H2>Quickstart</H2>
-        <P>Add the Moly MCP server to your AI tool. No cloning, no dependencies:</P>
+        <P>Add the Moly MCP server to your AI tool. One package, zero config:</P>
         <Pre title="Claude Code / Cursor / Claude Desktop">{`{
   "mcpServers": {
     "moly": {
-      "type": "http",
-      "url": "https://moly-lido.vercel.app/api/mcp"
+      "command": "npx",
+      "args": ["@moly-mcp/lido", "--server"]
     }
   }
 }`}</Pre>
-        <P>That&apos;s it. Your AI assistant now has 13 Lido tools — balances, staking, wrapping, withdrawals, and governance. Defaults to simulation mode on Hoodi testnet (safe, no real funds).</P>
+        <P>That&apos;s it. Your AI assistant now has 28 Lido tools — balances, staking, wrapping, withdrawals, governance, bridging, alerts, and bounds. Run <Code>npx @moly-mcp/lido</Code> once first to configure network, mode, and wallet via the setup wizard.</P>
 
         <Callout type="tip">Want mainnet or live mode? Add <a href="/docs/mcp-server">custom headers</a> to configure.</Callout>
 
@@ -125,25 +125,22 @@ export const PAGES: Record<string, DocPage> = {
           ["28 Tools", "Balance, staking, wrapping, withdrawals, governance, bridging, alerts, bounds, ledger"],
           ["Dual Mode", "Simulation (dry-run) and Live (real transactions)"],
           ["Multi-Chain", "Hoodi testnet and Ethereum mainnet"],
-          ["Hosted Server", "HTTP MCP endpoint — just add the URL, zero setup"],
+          ["OWS Wallet", "Encrypted key vault via Open Wallet Standard"],
           ["Chat Dashboard", "Web UI with AI agent at moly-lido.vercel.app"],
           ["Self-Hostable", "Clone and run locally with Bun for full control"],
         ]} />
 
         <H2>Architecture</H2>
-        <Pre>{`┌─────────────┐    HTTP/stdio    ┌──────────────┐     RPC      ┌────────────┐
-│  AI Client   │ ◄─────────────► │  Moly MCP     │ ◄──────────► │  Ethereum   │
-│  (Claude,    │   MCP protocol   │  Server       │   eth_call   │  (Hoodi /   │
-│   Cursor)    │                  │  (Next.js)    │              │   Mainnet)  │
-└─────────────┘                  └──────────────┘              └────────────┘
-
-┌──────────────────────────────────────────────┐
-│  Moly Dashboard (moly-lido.vercel.app)         │
-│  ┌────────────────────┬─────────────────────┐ │
-│  │  Chat Panel        │  Sidebar            │ │
-│  │  AI agent + tools  │  Balances / Stats   │ │
-│  └────────────────────┴─────────────────────┘ │
-└──────────────────────────────────────────────┘`}</Pre>
+        <Pre>{`┌─────────────┐     stdio       ┌──────────────┐     RPC      ┌────────────┐
+│  AI Client   │ ◄─────────────► │  Moly CLI     │ ◄──────────► │  Ethereum   │
+│  (Claude,    │   MCP protocol   │  @moly-mcp/   │   eth_call   │  (Hoodi /   │
+│   Cursor)    │                  │  lido         │              │   Mainnet)  │
+└─────────────┘                  └──────┬───────┘              └────────────┘
+                                        │
+                                 ┌──────┴───────┐
+                                 │  OWS Vault    │
+                                 │  ~/.ows/      │
+                                 └──────────────┘`}</Pre>
 
         <H2>Quick Links</H2>
         <UL items={[
@@ -162,21 +159,25 @@ export const PAGES: Record<string, DocPage> = {
     description: "Connect to Moly in under a minute",
     content: (
       <>
-        <P>Moly is a hosted service — there is nothing to install. Just add the MCP server URL to your AI agent and start interacting with Lido.</P>
+        <P>Moly is an npm package. One command to set up, then add the MCP server to your AI agent.</P>
 
-        <H2>Step 1: Add the MCP Server</H2>
+        <H2>Step 1: Run Setup Wizard</H2>
+        <Pre title="Terminal">{`npx @moly-mcp/lido`}</Pre>
+        <P>This walks you through network, mode, wallet (private key or OWS vault), and AI provider. Config is saved to <Code>~/.moly/config.json</Code>.</P>
+
+        <H2>Step 2: Add the MCP Server</H2>
         <P>Add this to your agent&apos;s MCP config file (see <a href="/docs/mcp-server/connect">Connect Any Agent</a> for where each agent stores its config):</P>
         <Pre title="MCP Config">{`{
   "mcpServers": {
     "moly": {
-      "type": "http",
-      "url": "https://moly-lido.vercel.app/api/mcp"
+      "command": "npx",
+      "args": ["@moly-mcp/lido", "--server"]
     }
   }
 }`}</Pre>
 
-        <H2>Step 2: Restart Your Agent</H2>
-        <P>Most agents require a restart after config changes. After restarting, the 13 Lido tools will be available.</P>
+        <H2>Step 3: Restart Your Agent</H2>
+        <P>Most agents require a restart after config changes. After restarting, all 28 Lido tools will be available.</P>
 
         <H2>Step 3: Try It</H2>
         <Pre>{`What's the stETH balance for 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18?`}</Pre>
@@ -188,11 +189,11 @@ export const PAGES: Record<string, DocPage> = {
 
         <H2>Defaults</H2>
         <Table headers={["Setting", "Default", "Change via"]} rows={[
-          ["Mode", "Simulation (dry-run)", "x-lido-mode header"],
-          ["Network", "Testnet (Hoodi)", "x-lido-network header"],
-          ["Chain", "Auto from network", "x-lido-chain header"],
+          ["Mode", "Simulation (dry-run)", "moly setup or update_settings tool"],
+          ["Network", "Testnet (Hoodi)", "moly setup or update_settings tool"],
+          ["Wallet", "None (required for live mode)", "moly setup (OWS or raw key)"],
         ]} />
-        <Callout type="info">Simulation mode is completely safe — no real transactions are sent. See <a href="/docs/configuration">Configuration</a> to customize.</Callout>
+        <Callout type="info">Simulation mode is completely safe — no real transactions are sent. Switch to live mode via the setup wizard or the <Code>update_settings</Code> tool.</Callout>
       </>
     ),
   },
@@ -238,35 +239,35 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
     description: "How Moly works under the hood",
     content: (
       <>
-        <P>Moly is a single Next.js app deployed on Vercel that serves three things: the MCP server, the chat dashboard, and these docs.</P>
-        <H2>Request Flow</H2>
-        <Pre>{`AI Agent                    Moly (Vercel)               Ethereum
+        <P>Moly has three packages: the CLI (<Code>@moly-mcp/lido</Code>), a web dashboard on Vercel, and these docs.</P>
+        <H2>Request Flow (CLI MCP Server)</H2>
+        <Pre>{`AI Agent                  Moly CLI (stdio)            Ethereum
   │                            │                            │
-  │── MCP POST /api/mcp ──────►│                            │
+  │── MCP tool call ──────────►│                            │
   │                            │── eth_call (viem) ─────────►│
   │                            │◄── balance data ───────────│
   │◄── tool result ────────────│                            │
   │                            │                            │`}</Pre>
-        <H2>Endpoints</H2>
-        <Table headers={["Endpoint", "Purpose"]} rows={[
-          ["/api/mcp", "MCP server — 13 Lido tools via Streamable HTTP"],
+        <H2>Components</H2>
+        <Table headers={["Component", "Purpose"]} rows={[
+          ["CLI (npx @moly-mcp/lido)", "28 tools via stdio MCP server + interactive terminal"],
+          ["OWS Vault", "Encrypted wallet storage via Open Wallet Standard"],
           ["/api/chat", "AI chat — Vercel AI SDK + OpenRouter"],
-          ["/api/lido", "Data API — sidebar balances and stats"],
+          ["/api/skill", "Agent skill document (raw markdown)"],
           ["/docs", "Documentation (this site)"],
-          ["/llms.txt", "Machine-readable tool reference for AI agents"],
-          ["/", "Chat dashboard UI"],
+          ["/dashboard", "Chat dashboard UI"],
         ]} />
         <H2>Stack</H2>
         <UL items={[
           <><strong>Next.js</strong> — app framework, deployed on Vercel</>,
           <><strong>viem</strong> — raw Ethereum contract calls (no SDK dependencies)</>,
-          <><strong>@modelcontextprotocol/sdk</strong> — MCP server with Streamable HTTP transport</>,
+          <><strong>@modelcontextprotocol/sdk</strong> — MCP server with stdio transport</>,
           <><strong>Vercel AI SDK v6</strong> — chat endpoint with tool calling</>,
           <><strong>OpenRouter</strong> — LLM gateway for the dashboard chat</>,
         ]} />
         <H2>How Tools Work</H2>
-        <P>All tools use raw viem contract calls against Lido&apos;s deployed contracts. Read tools call <Code>eth_call</Code> directly. Write tools return simulation results (gas estimates, expected outputs) — the hosted server never holds private keys and never broadcasts transactions.</P>
-        <P>Configuration (mode, network, chain) is passed via HTTP headers on each MCP request, making the server fully stateless.</P>
+        <P>All tools use raw viem contract calls against Lido&apos;s deployed contracts. Read tools call <Code>eth_call</Code> directly. Write tools in simulation mode return gas estimates and expected outputs. In live mode with a configured wallet (OWS or raw key), write tools broadcast real transactions.</P>
+        <P>Configuration (mode, network, wallet) is stored in <Code>~/.moly/config.json</Code> and can be changed via the setup wizard or the <Code>update_settings</Code> tool mid-session.</P>
       </>
     ),
   },
@@ -281,39 +282,28 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
         <Callout type="info">Write tools return simulation results by default. In simulation mode, no transactions are broadcast — you get gas estimates and expected outputs safely.</Callout>
 
         <H2>Quickstart</H2>
-        <P>Add the hosted Moly MCP server to your AI tool. No installation required:</P>
+        <P>Run the setup wizard once, then add the MCP server to your AI tool:</P>
+        <Pre title="Terminal">{`npx @moly-mcp/lido`}</Pre>
         <Pre title="MCP Config">{`{
   "mcpServers": {
     "moly": {
-      "type": "http",
-      "url": "https://moly-lido.vercel.app/api/mcp"
+      "command": "npx",
+      "args": ["@moly-mcp/lido", "--server"]
     }
   }
 }`}</Pre>
-        <P>Your AI assistant now has access to all 13 Lido tools. Try asking:</P>
+        <P>Your AI assistant now has access to all 28 Lido tools. Try asking:</P>
         <Pre>{`What's the stETH balance for 0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18?`}</Pre>
 
-        <H2>Configuration via Headers</H2>
-        <P>Customize behavior by adding headers to the MCP config:</P>
-        <Pre title="With custom headers">{`{
-  "mcpServers": {
-    "moly": {
-      "type": "http",
-      "url": "https://moly-lido.vercel.app/api/mcp",
-      "headers": {
-        "x-lido-mode": "simulation",
-        "x-lido-network": "mainnet"
-      }
-    }
-  }
-}`}</Pre>
-        <Table headers={["Header", "Values", "Default"]} rows={[
-          ["x-lido-mode", "simulation, live", "simulation"],
-          ["x-lido-network", "testnet, mainnet", "testnet"],
-          ["x-lido-chain", "hoodi, ethereum", "auto from network"],
+        <H2>Configuration</H2>
+        <P>The setup wizard (<Code>npx @moly-mcp/lido</Code>) configures network, mode, wallet, and AI provider. You can also change settings mid-session using the <Code>update_settings</Code> tool or <Code>moly setup</Code>.</P>
+        <Table headers={["Setting", "Options", "Default"]} rows={[
+          ["Network", "hoodi, mainnet", "hoodi"],
+          ["Mode", "simulation, live", "simulation"],
+          ["Wallet", "Raw key, OWS vault, or skip", "skip"],
         ]} />
 
-        <H2>Tools (17)</H2>
+        <H2>Tools (28)</H2>
         <H3>Read Tools (7)</H3>
         <Table headers={["Tool", "Description"]} rows={[
           ["get_balance", "ETH, stETH, wstETH balances"],
@@ -355,50 +345,41 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
     description: "Add Moly to Claude, Cursor, Windsurf, VS Code Copilot, or any MCP client",
     content: (
       <>
-        <P>Moly uses the standard MCP HTTP transport. Any agent or tool that supports MCP can connect with a single URL — no installation, no dependencies, no API keys.</P>
+        <P>Moly uses the standard MCP stdio transport. Run the setup wizard once, then add the server config to your AI agent.</P>
 
-        <H2>Universal Config</H2>
-        <P>Add this to your agent&apos;s MCP configuration:</P>
+        <H2>Step 1: Setup</H2>
+        <Pre title="Terminal">{`npx @moly-mcp/lido`}</Pre>
+        <P>This configures network, mode, wallet, and saves to <Code>~/.moly/config.json</Code>.</P>
+
+        <H2>Step 2: Add MCP Server</H2>
         <Pre title="MCP Config (works everywhere)">{`{
   "mcpServers": {
     "moly": {
-      "type": "http",
-      "url": "https://moly-lido.vercel.app/api/mcp"
+      "command": "npx",
+      "args": ["@moly-mcp/lido", "--server"]
     }
   }
 }`}</Pre>
-        <Callout type="tip">That&apos;s it. Your agent now has 13 Lido tools. Defaults to simulation mode on Hoodi testnet — completely safe.</Callout>
+        <Callout type="tip">That&apos;s it. Your agent now has 28 Lido tools. Defaults to simulation mode on Hoodi testnet — completely safe.</Callout>
 
         <H2>Where to Put the Config</H2>
         <Table headers={["Agent", "Config File"]} rows={[
-          ["Claude Code", ".claude.json in project root"],
+          ["Claude Code", "~/.mcp.json or .mcp.json in project root"],
           ["Claude Desktop (macOS)", "~/Library/Application Support/Claude/claude_desktop_config.json"],
           ["Claude Desktop (Windows)", "%APPDATA%\\Claude\\claude_desktop_config.json"],
           ["Claude Desktop (Linux)", "~/.config/Claude/claude_desktop_config.json"],
-          ["Cursor", ".cursor/mcp.json in project root"],
-          ["Windsurf", ".windsurf/mcp.json in project root"],
+          ["Cursor", "~/.cursor/mcp.json or .cursor/mcp.json in project root"],
+          ["Windsurf", "~/.codeium/windsurf/mcp_config.json"],
           ["VS Code Copilot", ".vscode/mcp.json in project root"],
           ["Other MCP clients", "Check your client's MCP documentation"],
         ]} />
 
         <H2>Configure Mode & Network</H2>
-        <P>Add headers to switch from defaults:</P>
-        <Pre title="Example: mainnet + live mode">{`{
-  "mcpServers": {
-    "moly": {
-      "type": "http",
-      "url": "https://moly-lido.vercel.app/api/mcp",
-      "headers": {
-        "x-lido-mode": "live",
-        "x-lido-network": "mainnet"
-      }
-    }
-  }
-}`}</Pre>
-        <Table headers={["Header", "Values", "Default"]} rows={[
-          ["x-lido-mode", "simulation, live", "simulation"],
-          ["x-lido-network", "testnet, mainnet", "testnet"],
-          ["x-lido-chain", "hoodi, ethereum", "auto from network"],
+        <P>Use the <Code>update_settings</Code> tool mid-session, or re-run <Code>moly setup</Code> to change defaults:</P>
+        <Pre title="Via tool call">{`update_settings({ network: "mainnet", mode: "live" })`}</Pre>
+        <Table headers={["Setting", "Options", "Default"]} rows={[
+          ["Network", "hoodi, mainnet", "hoodi"],
+          ["Mode", "simulation, live", "simulation"],
         ]} />
 
         <H2>Verify</H2>
@@ -421,9 +402,9 @@ Agent: [calls get_balance] → [calls wrap_steth]
         <H2>Troubleshooting</H2>
         <Table headers={["Issue", "Fix"]} rows={[
           ["Tools not showing", "Restart your agent after config change"],
-          ["Connection refused", "Check the URL has no typos"],
+          ["Server won't start", "Run npx @moly-mcp/lido first to complete setup"],
           ["Timeout errors", "RPC may be slow — retry in a moment"],
-          ["Agent doesn't support HTTP MCP", "Check if your agent needs a different transport format"],
+          ["npx cache stale", "Run npx @moly-mcp/lido@latest to force latest version"],
         ]} />
       </>
     ),
@@ -434,7 +415,7 @@ Agent: [calls get_balance] → [calls wrap_steth]
     description: "Build agents that connect to the Moly MCP server programmatically",
     content: (
       <>
-        <P>Three ways to connect to Moly programmatically. All examples point to the hosted server at <Code>https://moly-lido.vercel.app/api/mcp</Code>.</P>
+        <P>Three ways to connect to Moly programmatically. These examples use the hosted server for demonstration. For production use with real transactions, run the CLI locally (<Code>npx @moly-mcp/lido --server</Code>).</P>
 
         <H2>Anthropic API (MCP Connector)</H2>
         <P>The simplest approach. Anthropic handles the MCP connection — no MCP client library needed.</P>
@@ -467,19 +448,20 @@ const response = await client.beta.messages.create(
 );
 
 console.log(response.content);`}</Pre>
-        <Callout type="tip">Pass <Code>x-lido-mode</Code> and <Code>x-lido-network</Code> headers in the <Code>mcp_servers</Code> entry to configure mode and network per-request.</Callout>
+        <Callout type="tip">Use the <Code>update_settings</Code> tool to change mode or network mid-session without restarting.</Callout>
 
         <H2>Vercel AI SDK</H2>
-        <P>Use the Vercel AI SDK&apos;s MCP client with any model.</P>
+        <P>Use the Vercel AI SDK&apos;s MCP client with the local CLI server.</P>
         <Pre title="TypeScript">{`import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { createMCPClient } from "ai";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
 
 const mcpClient = await createMCPClient({
-  transport: new StreamableHTTPClientTransport(
-    new URL("https://moly-lido.vercel.app/api/mcp")
-  ),
+  transport: new Experimental_StdioMCPTransport({
+    command: "npx",
+    args: ["@moly-mcp/lido", "--server"],
+  }),
 });
 
 const tools = await mcpClient.tools();
@@ -497,11 +479,12 @@ await mcpClient.close();`}</Pre>
         <H2>MCP SDK (TypeScript)</H2>
         <P>Use the MCP SDK directly for full control over tool calls.</P>
         <Pre title="TypeScript">{`import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-const transport = new StreamableHTTPClientTransport(
-  new URL("https://moly-lido.vercel.app/api/mcp")
-);
+const transport = new StdioClientTransport({
+  command: "npx",
+  args: ["@moly-mcp/lido", "--server"],
+});
 
 const client = new Client({
   name: "my-agent",
@@ -530,24 +513,18 @@ console.log("Stake simulation:", stake.content);
 await client.close();`}</Pre>
 
         <H2>Configure Mode & Network</H2>
-        <P>Add custom headers to the transport to change defaults:</P>
-        <Pre title="With headers (MCP SDK)">{`const transport = new StreamableHTTPClientTransport(
-  new URL("https://moly-lido.vercel.app/api/mcp"),
-  {
-    requestInit: {
-      headers: {
-        "x-lido-mode": "simulation",
-        "x-lido-network": "mainnet",
-      },
-    },
-  }
-);`}</Pre>
-        <Table headers={["Header", "Values", "Default"]} rows={[
-          ["x-lido-mode", "simulation, live", "simulation"],
-          ["x-lido-network", "testnet, mainnet", "testnet"],
-          ["x-lido-chain", "hoodi, ethereum", "auto from network"],
+        <P>Configuration is set via the setup wizard and stored in <Code>~/.moly/config.json</Code>. You can also change settings at runtime:</P>
+        <Pre title="Via MCP tool call">{`// Use the update_settings tool from your agent
+await client.callTool({
+  name: "update_settings",
+  arguments: { mode: "live", network: "mainnet" },
+});`}</Pre>
+        <Table headers={["Setting", "Values", "Default"]} rows={[
+          ["mode", "simulation, live", "simulation"],
+          ["network", "hoodi, mainnet", "hoodi"],
+          ["chain_scope", "ethereum, all", "ethereum"],
         ]} />
-        <Callout type="warning">Live mode with a private key can broadcast real transactions. Always validate with simulation first.</Callout>
+        <Callout type="warning">Live mode with a configured wallet will broadcast real transactions. Always validate with simulation first.</Callout>
       </>
     ),
   },

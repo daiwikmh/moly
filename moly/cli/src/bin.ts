@@ -273,6 +273,74 @@ async function main() {
       break;
     }
 
+    // ── moly --help / help / -h ─────────────────────────────────────────
+    case '--help':
+    case '-h':
+    case 'help': {
+      console.log(`
+moly — Lido MCP Server CLI
+
+Setup:
+  setup              Run the setup wizard
+  config             Show current configuration
+  reset              Delete configuration
+  wallet             Show wallet address
+
+Staking:
+  balance [addr]     Get ETH, stETH, wstETH balances
+  rewards [addr] [d] Get staking rewards (default 7 days)
+  stake <amount>     Stake ETH to receive stETH
+  withdraw <amount>  Request stETH withdrawal
+  withdrawals [addr] List pending withdrawal requests
+  claim <id1> [...]  Claim finalized withdrawals
+  wrap <amount>      Wrap stETH to wstETH
+  unwrap <amount>    Unwrap wstETH to stETH
+  rate               Get stETH/wstETH conversion rate
+  position [addr]    Cross-chain position summary
+
+Governance:
+  proposals [count]  List recent DAO proposals
+  proposal <id>      Show proposal details
+  vote <id> yea|nay  Vote on a proposal
+
+Alerts:
+  alert add <cond>   Add alert (e.g. "balance_below 0.5")
+  alert list         List active alerts
+  alert remove <id>  Remove alert
+  alert channels     Configure Telegram/webhook
+  alert start        Start alert daemon
+
+Bounds:
+  bounds [show]      Show safety bounds
+  bounds set         Set bounds (--max-stake-per-tx, --max-daily-stake, --min-eth-reserve)
+  bounds reset       Reset to defaults
+
+Ledger:
+  ledger list        List entries (--tool, --since, --limit)
+  ledger stats       Show statistics
+  ledger export      Export (--format json|csv)
+
+Agent:
+  terminal           Start interactive chat session
+  --server           Start MCP server (for AI client configs)
+
+  help, --help       Show this help
+  --version          Show version
+
+Add --dry-run to any write command to simulate without broadcasting.
+`);
+      break;
+    }
+
+    // ── moly --version / -v ──────────────────────────────────────────
+    case '--version':
+    case '-v': {
+      const { createRequire } = await import('module');
+      const pkg = createRequire(import.meta.url)('../package.json');
+      console.log(`@moly-mcp/lido v${pkg.version}`);
+      break;
+    }
+
     // ── moly --server (force-start, used in AI client configs) ────────
     case '--server': {
       if (!configExists()) {
@@ -282,6 +350,130 @@ async function main() {
         process.exit(1);
       }
       await startServer();
+      break;
+    }
+
+    // ── Direct tool commands ──────────────────────────────────────────
+
+    case 'balance': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const { getBalance } = await import('./tools/balance.js');
+      const addr = args[1];
+      console.log(JSON.stringify(await getBalance(addr), null, 2));
+      break;
+    }
+
+    case 'rewards': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const { getRewards } = await import('./tools/balance.js');
+      const addr = args[1];
+      const days = args[2] ? parseInt(args[2]) : 7;
+      console.log(JSON.stringify(await getRewards(addr, days), null, 2));
+      break;
+    }
+
+    case 'stake': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const amount = args[1];
+      if (!amount) { console.log('Usage: moly stake <amount> [--dry-run]'); break; }
+      const dryRun = args.includes('--dry-run');
+      const { stakeEth } = await import('./tools/stake.js');
+      console.log(JSON.stringify(await stakeEth(amount, dryRun), null, 2));
+      break;
+    }
+
+    case 'wrap': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const amount = args[1];
+      if (!amount) { console.log('Usage: moly wrap <amount> [--dry-run]'); break; }
+      const dryRun = args.includes('--dry-run');
+      const { wrapSteth } = await import('./tools/wrap.js');
+      console.log(JSON.stringify(await wrapSteth(amount, dryRun), null, 2));
+      break;
+    }
+
+    case 'unwrap': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const amount = args[1];
+      if (!amount) { console.log('Usage: moly unwrap <amount> [--dry-run]'); break; }
+      const dryRun = args.includes('--dry-run');
+      const { unwrapWsteth } = await import('./tools/wrap.js');
+      console.log(JSON.stringify(await unwrapWsteth(amount, dryRun), null, 2));
+      break;
+    }
+
+    case 'withdraw': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const amount = args[1];
+      if (!amount) { console.log('Usage: moly withdraw <amount> [--dry-run]'); break; }
+      const dryRun = args.includes('--dry-run');
+      const { requestWithdrawal } = await import('./tools/unstake.js');
+      console.log(JSON.stringify(await requestWithdrawal(amount, dryRun), null, 2));
+      break;
+    }
+
+    case 'claim': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const ids = args.slice(1).filter(a => !a.startsWith('--'));
+      if (!ids.length) { console.log('Usage: moly claim <id1> [id2...] [--dry-run]'); break; }
+      const dryRun = args.includes('--dry-run');
+      const { claimWithdrawals } = await import('./tools/unstake.js');
+      console.log(JSON.stringify(await claimWithdrawals(ids, dryRun), null, 2));
+      break;
+    }
+
+    case 'withdrawals': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const addr = args[1];
+      const { getWithdrawalRequests } = await import('./tools/unstake.js');
+      console.log(JSON.stringify(await getWithdrawalRequests(addr), null, 2));
+      break;
+    }
+
+    case 'proposals': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const count = args[1] ? parseInt(args[1]) : 5;
+      const { getProposals } = await import('./tools/governance.js');
+      console.log(JSON.stringify(await getProposals(count), null, 2));
+      break;
+    }
+
+    case 'proposal': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const id = args[1];
+      if (!id) { console.log('Usage: moly proposal <id>'); break; }
+      const { getProposal } = await import('./tools/governance.js');
+      console.log(JSON.stringify(await getProposal(parseInt(id)), null, 2));
+      break;
+    }
+
+    case 'vote': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const id = args[1];
+      const side = args[2];
+      if (!id || !side) { console.log('Usage: moly vote <proposal_id> <yea|nay> [--dry-run]'); break; }
+      const support = side.toLowerCase() === 'yea' || side.toLowerCase() === 'yes';
+      const dryRun = args.includes('--dry-run');
+      const { castVote } = await import('./tools/governance.js');
+      console.log(JSON.stringify(await castVote(parseInt(id), support, dryRun), null, 2));
+      break;
+    }
+
+    case 'rate': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const { getConversionRate } = await import('./tools/wrap.js');
+      console.log(JSON.stringify(await getConversionRate(), null, 2));
+      break;
+    }
+
+    case 'wallet': {
+      if (!configExists()) { console.log('No config. Run: moly setup'); process.exit(1); }
+      const { getRuntime } = await import('./server/runtime.js');
+      try {
+        console.log(getRuntime().getAddress());
+      } catch (e: any) {
+        console.log('No wallet configured:', e.message);
+      }
       break;
     }
 

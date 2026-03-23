@@ -21,7 +21,6 @@ import {
   isCancel,
   spinner
 } from "@clack/prompts";
-import { generatePrivateKey } from "viem/accounts";
 function bail(value) {
   cancel("Setup cancelled.");
   process.exit(0);
@@ -151,53 +150,125 @@ async function runWizard() {
   if (keySource === "ows") {
     let owsSdk = null;
     let wallets = [];
-    try {
-      const { createRequire } = await import("module");
-      const _req = createRequire(import.meta.url);
-      owsSdk = _req("@open-wallet-standard/core");
-      wallets = owsSdk.listWallets();
-    } catch {
-      note("OWS SDK not found. Install it first:\ncurl -fsSL https://openwallet.sh/install.sh | bash\nnpm install @open-wallet-standard/core\nFalling back to raw key storage.", "OWS not available");
+    const { createRequire } = await import("module");
+    const { homedir } = await import("os");
+    const { join } = await import("path");
+    const owsDir = join(homedir(), ".moly");
+    const searchPaths = [
+      () => createRequire(import.meta.url)("@open-wallet-standard/core"),
+      () => createRequire(join(owsDir, "package.json"))("@open-wallet-standard/core"),
+      () => createRequire(join(homedir(), ".nvm", "versions", "node", process.version, "lib", "node_modules", "package.json"))("@open-wallet-standard/core")
+    ];
+    for (const loader of searchPaths) {
+      try {
+        owsSdk = loader();
+        break;
+      } catch {
+      }
+    }
+    if (!owsSdk) {
+      const s = spinner();
+      s.start("Installing @open-wallet-standard/core...");
+      try {
+        const { execSync } = await import("child_process");
+        const { mkdirSync, existsSync, writeFileSync } = await import("fs");
+        if (!existsSync(owsDir)) mkdirSync(owsDir, { recursive: true });
+        if (!existsSync(join(owsDir, "package.json"))) {
+          writeFileSync(join(owsDir, "package.json"), '{"name":"moly-deps","private":true}');
+        }
+        execSync("npm install @open-wallet-standard/core", { stdio: "pipe", cwd: owsDir });
+        s.stop("OWS SDK installed.");
+        owsSdk = createRequire(join(owsDir, "package.json"))("@open-wallet-standard/core");
+      } catch (installErr) {
+        s.stop("Auto-install failed: " + installErr.message);
+        note("Could not install OWS SDK automatically.\nFalling back to raw key storage.", "OWS not available");
+      }
+    }
+    if (owsSdk) {
+      try {
+        wallets = owsSdk.listWallets();
+      } catch {
+      }
     }
     if (owsSdk && wallets.length > 0) {
-      const walletName = check(
+      const evmAddr = (w) => w.accounts?.find((a) => a.chainId === "evm")?.address ?? "";
+      const walletAction = check(
         await select({
-          message: "Which OWS wallet?",
-          options: wallets.map((w) => ({
-            value: w.name,
-            label: `${w.name}  (${w.address.slice(0, 8)}...)`
-          }))
+          message: "OWS wallet?",
+          options: [
+            ...wallets.map((w) => ({
+              value: w.name,
+              label: `${w.name}  (${evmAddr(w).slice(0, 10)}...)`
+            })),
+            { value: "__import__", label: "Import existing private key into new wallet" },
+            { value: "__create__", label: "Create new wallet" }
+          ]
         })
       );
-      const passphrase = check(
-        await password({
-          message: "OWS passphrase:",
-          mask: "*"
-        })
-      );
-      ows = { walletName, passphrase: passphrase.trim() };
+      if (walletAction === "__import__" || walletAction === "__create__") {
+        const wName = check(
+          await text({ message: "Wallet name:", placeholder: "moly", initialValue: "moly" })
+        );
+        const pp = check(
+          await password({ message: "Passphrase (encrypts the vault):", mask: "*" })
+        );
+        try {
+          if (walletAction === "__import__") {
+            const pk = check(
+              await password({ message: "Private key (0x...):", mask: "*" })
+            );
+            owsSdk.importWalletPrivateKey(wName.trim() || "moly", pk.trim(), pp.trim() || void 0);
+          } else {
+            owsSdk.createWallet(wName.trim() || "moly", pp.trim() || void 0);
+          }
+          ows = { walletName: wName.trim() || "moly", passphrase: pp.trim() };
+        } catch (err) {
+          note("OWS operation failed: " + err.message + "\nFalling back to raw key.", "Fallback");
+          const pk = check(
+            await password({ message: "Private key (0x...):", mask: "*" })
+          );
+          const t = pk.trim();
+          privateKey = t ? t.startsWith("0x") ? t : "0x" + t : null;
+        }
+      } else {
+        const passphrase = check(
+          await password({ message: "OWS passphrase:", mask: "*" })
+        );
+        ows = { walletName: walletAction, passphrase: passphrase.trim() };
+      }
     } else if (owsSdk && wallets.length === 0) {
-      note("No OWS wallets found. Creating one for you...", "New OWS wallet");
+      const walletAction = check(
+        await select({
+          message: "No wallets found. What would you like to do?",
+          options: [
+            { value: "import", label: "Import existing private key" },
+            { value: "create", label: "Generate new wallet" }
+          ]
+        })
+      );
       const walletName = check(
         await text({ message: "Wallet name:", placeholder: "moly", initialValue: "moly" })
       );
       const passphrase = check(
-        await password({ message: "Set a passphrase (used to encrypt the key):", mask: "*" })
+        await password({ message: "Passphrase (encrypts the vault):", mask: "*" })
       );
-      const s = spinner();
-      s.start("Generating wallet...");
       try {
-        const privateKey2 = generatePrivateKey();
-        owsSdk.createWallet(walletName.trim() || "moly", passphrase.trim(), privateKey2);
-        s.stop("Wallet created.");
+        if (walletAction === "import") {
+          const pk = check(
+            await password({ message: "Private key (0x...):", mask: "*" })
+          );
+          owsSdk.importWalletPrivateKey(walletName.trim() || "moly", pk.trim(), passphrase.trim() || void 0);
+        } else {
+          owsSdk.createWallet(walletName.trim() || "moly", passphrase.trim() || void 0);
+        }
         ows = { walletName: walletName.trim() || "moly", passphrase: passphrase.trim() };
       } catch (err) {
-        s.stop("Auto-create failed: " + err.message);
-        note("Falling back to raw private key storage.", "Fallback");
+        note("OWS operation failed: " + err.message + "\nFalling back to raw key.", "Fallback");
         const pk = check(
-          await password({ message: "Enter or paste a private key (0x...) \u2014 or generate one:", mask: "*" })
+          await password({ message: "Private key (0x...):", mask: "*" })
         );
-        privateKey = pk.trim() || null;
+        const t = pk.trim();
+        privateKey = t ? t.startsWith("0x") ? t : "0x" + t : null;
       }
     }
   } else if (keySource === "raw") {
@@ -207,7 +278,8 @@ async function runWizard() {
         mask: "*"
       })
     );
-    privateKey = pk.trim() || null;
+    const trimmed = pk.trim();
+    privateKey = trimmed ? trimmed.startsWith("0x") ? trimmed : "0x" + trimmed : null;
   }
   const providerChoice = check(
     await select({
@@ -280,7 +352,7 @@ async function main() {
     case "setup": {
       const { cfg, terminalMode } = await runWizard();
       if (terminalMode) {
-        const { startChatSession } = await import("./session-ZIAXZNTD.js");
+        const { startChatSession } = await import("./session-FKRDTPLS.js");
         await startChatSession(cfg);
       } else {
         await startServer();
@@ -325,13 +397,13 @@ async function main() {
           }
           const threshold = args[3] && !args[3].startsWith("-") ? parseFloat(args[3]) : void 0;
           const channel = getFlag("--channel") ?? "telegram";
-          const { setAlert } = await import("./alerts-ARQAPRIT.js");
+          const { setAlert } = await import("./alerts-WV24ME7Y.js");
           const alert = setAlert({ condition, threshold, channel });
           console.log("Alert created:", JSON.stringify(alert, null, 2));
           break;
         }
         case "list": {
-          const { listAlerts } = await import("./alerts-ARQAPRIT.js");
+          const { listAlerts } = await import("./alerts-WV24ME7Y.js");
           console.log(JSON.stringify(listAlerts(), null, 2));
           break;
         }
@@ -341,12 +413,12 @@ async function main() {
             console.log("Usage: moly alert remove <id>");
             break;
           }
-          const { removeAlertById } = await import("./alerts-ARQAPRIT.js");
+          const { removeAlertById } = await import("./alerts-WV24ME7Y.js");
           console.log(JSON.stringify(removeAlertById(id), null, 2));
           break;
         }
         case "channels": {
-          const { configureAlertChannels } = await import("./alerts-ARQAPRIT.js");
+          const { configureAlertChannels } = await import("./alerts-WV24ME7Y.js");
           const result = configureAlertChannels({
             telegram_token: getFlag("--telegram-token"),
             telegram_chat_id: getFlag("--telegram-chat"),
@@ -360,7 +432,7 @@ async function main() {
             console.log("No config. Run: moly setup");
             process.exit(1);
           }
-          const { runDaemon } = await import("./daemon-RZA4HEUI.js");
+          const { runDaemon } = await import("./daemon-DAY6WJCJ.js");
           await runDaemon();
           break;
         }
@@ -518,7 +590,7 @@ async function main() {
         console.log("No config. Run: moly setup");
         process.exit(1);
       }
-      const { getTotalPosition } = await import("./position-ANCFIWD6.js");
+      const { getTotalPosition } = await import("./position-IA7ADOHU.js");
       const address = args[1];
       const pos = await getTotalPosition(address);
       console.log(JSON.stringify(pos, null, 2));
@@ -529,16 +601,82 @@ async function main() {
       if (!configExists()) {
         const { cfg, terminalMode } = await runWizard();
         if (terminalMode) {
-          const { startChatSession } = await import("./session-ZIAXZNTD.js");
+          const { startChatSession } = await import("./session-FKRDTPLS.js");
           await startChatSession(cfg);
         } else {
           await startServer();
         }
       } else {
         const cfg = loadConfig();
-        const { startChatSession } = await import("./session-ZIAXZNTD.js");
+        const { startChatSession } = await import("./session-FKRDTPLS.js");
         await startChatSession(cfg);
       }
+      break;
+    }
+    // ── moly --help / help / -h ─────────────────────────────────────────
+    case "--help":
+    case "-h":
+    case "help": {
+      console.log(`
+moly \u2014 Lido MCP Server CLI
+
+Setup:
+  setup              Run the setup wizard
+  config             Show current configuration
+  reset              Delete configuration
+  wallet             Show wallet address
+
+Staking:
+  balance [addr]     Get ETH, stETH, wstETH balances
+  rewards [addr] [d] Get staking rewards (default 7 days)
+  stake <amount>     Stake ETH to receive stETH
+  withdraw <amount>  Request stETH withdrawal
+  withdrawals [addr] List pending withdrawal requests
+  claim <id1> [...]  Claim finalized withdrawals
+  wrap <amount>      Wrap stETH to wstETH
+  unwrap <amount>    Unwrap wstETH to stETH
+  rate               Get stETH/wstETH conversion rate
+  position [addr]    Cross-chain position summary
+
+Governance:
+  proposals [count]  List recent DAO proposals
+  proposal <id>      Show proposal details
+  vote <id> yea|nay  Vote on a proposal
+
+Alerts:
+  alert add <cond>   Add alert (e.g. "balance_below 0.5")
+  alert list         List active alerts
+  alert remove <id>  Remove alert
+  alert channels     Configure Telegram/webhook
+  alert start        Start alert daemon
+
+Bounds:
+  bounds [show]      Show safety bounds
+  bounds set         Set bounds (--max-stake-per-tx, --max-daily-stake, --min-eth-reserve)
+  bounds reset       Reset to defaults
+
+Ledger:
+  ledger list        List entries (--tool, --since, --limit)
+  ledger stats       Show statistics
+  ledger export      Export (--format json|csv)
+
+Agent:
+  terminal           Start interactive chat session
+  --server           Start MCP server (for AI client configs)
+
+  help, --help       Show this help
+  --version          Show version
+
+Add --dry-run to any write command to simulate without broadcasting.
+`);
+      break;
+    }
+    // ── moly --version / -v ──────────────────────────────────────────
+    case "--version":
+    case "-v": {
+      const { createRequire } = await import("module");
+      const pkg = createRequire(import.meta.url)("../package.json");
+      console.log(`@moly-mcp/lido v${pkg.version}`);
       break;
     }
     // ── moly --server (force-start, used in AI client configs) ────────
@@ -552,12 +690,182 @@ async function main() {
       await startServer();
       break;
     }
+    // ── Direct tool commands ──────────────────────────────────────────
+    case "balance": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const { getBalance } = await import("./balance-WQTVOX27.js");
+      const addr = args[1];
+      console.log(JSON.stringify(await getBalance(addr), null, 2));
+      break;
+    }
+    case "rewards": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const { getRewards } = await import("./balance-WQTVOX27.js");
+      const addr = args[1];
+      const days = args[2] ? parseInt(args[2]) : 7;
+      console.log(JSON.stringify(await getRewards(addr, days), null, 2));
+      break;
+    }
+    case "stake": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const amount = args[1];
+      if (!amount) {
+        console.log("Usage: moly stake <amount> [--dry-run]");
+        break;
+      }
+      const dryRun = args.includes("--dry-run");
+      const { stakeEth } = await import("./stake-ZYFXR35T.js");
+      console.log(JSON.stringify(await stakeEth(amount, dryRun), null, 2));
+      break;
+    }
+    case "wrap": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const amount = args[1];
+      if (!amount) {
+        console.log("Usage: moly wrap <amount> [--dry-run]");
+        break;
+      }
+      const dryRun = args.includes("--dry-run");
+      const { wrapSteth } = await import("./wrap-67UFXAQW.js");
+      console.log(JSON.stringify(await wrapSteth(amount, dryRun), null, 2));
+      break;
+    }
+    case "unwrap": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const amount = args[1];
+      if (!amount) {
+        console.log("Usage: moly unwrap <amount> [--dry-run]");
+        break;
+      }
+      const dryRun = args.includes("--dry-run");
+      const { unwrapWsteth } = await import("./wrap-67UFXAQW.js");
+      console.log(JSON.stringify(await unwrapWsteth(amount, dryRun), null, 2));
+      break;
+    }
+    case "withdraw": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const amount = args[1];
+      if (!amount) {
+        console.log("Usage: moly withdraw <amount> [--dry-run]");
+        break;
+      }
+      const dryRun = args.includes("--dry-run");
+      const { requestWithdrawal } = await import("./unstake-D4K64YHK.js");
+      console.log(JSON.stringify(await requestWithdrawal(amount, dryRun), null, 2));
+      break;
+    }
+    case "claim": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const ids = args.slice(1).filter((a) => !a.startsWith("--"));
+      if (!ids.length) {
+        console.log("Usage: moly claim <id1> [id2...] [--dry-run]");
+        break;
+      }
+      const dryRun = args.includes("--dry-run");
+      const { claimWithdrawals } = await import("./unstake-D4K64YHK.js");
+      console.log(JSON.stringify(await claimWithdrawals(ids, dryRun), null, 2));
+      break;
+    }
+    case "withdrawals": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const addr = args[1];
+      const { getWithdrawalRequests } = await import("./unstake-D4K64YHK.js");
+      console.log(JSON.stringify(await getWithdrawalRequests(addr), null, 2));
+      break;
+    }
+    case "proposals": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const count = args[1] ? parseInt(args[1]) : 5;
+      const { getProposals } = await import("./governance-RKBUYAG3.js");
+      console.log(JSON.stringify(await getProposals(count), null, 2));
+      break;
+    }
+    case "proposal": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const id = args[1];
+      if (!id) {
+        console.log("Usage: moly proposal <id>");
+        break;
+      }
+      const { getProposal } = await import("./governance-RKBUYAG3.js");
+      console.log(JSON.stringify(await getProposal(parseInt(id)), null, 2));
+      break;
+    }
+    case "vote": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const id = args[1];
+      const side = args[2];
+      if (!id || !side) {
+        console.log("Usage: moly vote <proposal_id> <yea|nay> [--dry-run]");
+        break;
+      }
+      const support = side.toLowerCase() === "yea" || side.toLowerCase() === "yes";
+      const dryRun = args.includes("--dry-run");
+      const { castVote } = await import("./governance-RKBUYAG3.js");
+      console.log(JSON.stringify(await castVote(parseInt(id), support, dryRun), null, 2));
+      break;
+    }
+    case "rate": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const { getConversionRate } = await import("./wrap-67UFXAQW.js");
+      console.log(JSON.stringify(await getConversionRate(), null, 2));
+      break;
+    }
+    case "wallet": {
+      if (!configExists()) {
+        console.log("No config. Run: moly setup");
+        process.exit(1);
+      }
+      const { getRuntime } = await import("./runtime-PGSRZ7YU.js");
+      try {
+        console.log(getRuntime().getAddress());
+      } catch (e) {
+        console.log("No wallet configured:", e.message);
+      }
+      break;
+    }
     // ── moly (no args) — wizard if first run, else start server ───────
     default: {
       if (!configExists()) {
         const { cfg, terminalMode } = await runWizard();
         if (terminalMode) {
-          const { startChatSession } = await import("./session-ZIAXZNTD.js");
+          const { startChatSession } = await import("./session-FKRDTPLS.js");
           await startChatSession(cfg);
         } else {
           await startServer();

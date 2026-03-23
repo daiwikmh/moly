@@ -31,7 +31,7 @@ export async function stakeEth(amountEth: string, dryRun?: boolean) {
         account: '0x0000000000000000000000000000000000000001',
       });
       estimatedGas = gas.toString();
-    } catch { /* gas estimation may fail on testnet */ }
+    } catch {}
 
     return {
       simulated: true,
@@ -45,12 +45,16 @@ export async function stakeEth(amountEth: string, dryRun?: boolean) {
     };
   }
 
-  const account = rt.getAddress();
-  const tx = await rt.sdk.stake.stakeEth({
+  const wallet = rt.getWallet();
+  const hash = await wallet.writeContract({
+    address: lidoAddress,
+    abi: SUBMIT_ABI,
+    functionName: 'submit',
+    args: [REFERRAL],
     value,
-    account: { address: account } as any,
-    callback: () => {},
   });
+
+  const receipt = await rt.publicClient.waitForTransactionReceipt({ hash });
 
   return {
     simulated: false,
@@ -58,8 +62,8 @@ export async function stakeEth(amountEth: string, dryRun?: boolean) {
     network: rt.chainAddresses.name,
     action: 'stake',
     amountEth,
-    txHash: (tx as any).hash,
-    stethReceived: formatEther((tx as any).result?.stethReceived ?? 0n),
-    sharesReceived: formatEther((tx as any).result?.sharesReceived ?? 0n),
+    txHash: hash,
+    status: receipt.status,
+    gasUsed: receipt.gasUsed.toString(),
   };
 }

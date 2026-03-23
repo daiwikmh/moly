@@ -3,6 +3,8 @@ import { mainnet, base, arbitrum } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { LidoSDK } from '@lidofinance/lido-ethereum-sdk';
 import { createRequire } from 'module';
+import { join } from 'path';
+import { homedir } from 'os';
 const _require = createRequire(import.meta.url);
 import { loadConfig, saveConfig } from '../config/store.js';
 import { CHAIN_CONFIG, L2_CHAINS } from '../config/types.js';
@@ -43,10 +45,20 @@ function buildRuntime(): Runtime {
     transport: http(rpcUrl),
   });
 
-  const sdk = new LidoSDK({
-    chainId: chainCfg.chainId as 1 | 560048,
-    rpcProvider: publicClient as any,
-  });
+  // SDK initialized lazily after wallet is available
+  let _sdk: LidoSDK | null = null;
+  function getSdk(): LidoSDK {
+    if (_sdk) return _sdk;
+    const sdkOpts: any = {
+      chainId: chainCfg.chainId as 1 | 560048,
+      rpcProvider: publicClient as any,
+    };
+    try {
+      sdkOpts.web3Provider = getWallet() as any;
+    } catch {}
+    _sdk = new LidoSDK(sdkOpts);
+    return _sdk;
+  }
 
   let _wallet: ReturnType<typeof createWalletClient> | null = null;
   let _resolvedAccount: ReturnType<typeof privateKeyToAccount> | null = null;
@@ -56,21 +68,32 @@ function buildRuntime(): Runtime {
 
     if (config.ows) {
       let owsSdk: any;
-      try {
-        owsSdk = _require('@open-wallet-standard/core');
-      } catch {
-        throw new Error('OWS SDK not installed. Run: npm install @open-wallet-standard/core');
+      const loaders = [
+        () => _require('@open-wallet-standard/core'),
+        () => createRequire(join(homedir(), '.moly', 'package.json'))('@open-wallet-standard/core'),
+        () => createRequire(join(homedir(), '.nvm', 'versions', 'node', process.version, 'lib', 'node_modules', 'package.json'))('@open-wallet-standard/core'),
+      ];
+      for (const loader of loaders) {
+        try { owsSdk = loader(); break; } catch {}
       }
-      const exported = owsSdk.exportWallet(config.ows.walletName, config.ows.passphrase);
-      const keyHex = exported.secp256k1 ?? exported;
+      if (!owsSdk) throw new Error('OWS SDK not installed. Run: npm install -g @open-wallet-standard/core');
+      const exported: string = owsSdk.exportWallet(config.ows.walletName, config.ows.passphrase ?? undefined);
+      let keyHex: string;
+      try {
+        const parsed = JSON.parse(exported);
+        keyHex = parsed.secp256k1 ?? parsed;
+      } catch {
+        keyHex = exported;
+      }
       const pk = (keyHex.startsWith('0x') ? keyHex : '0x' + keyHex) as `0x${string}`;
       _resolvedAccount = privateKeyToAccount(pk);
       return _resolvedAccount;
     }
 
-    const pk = config.privateKey;
-    if (!pk) throw new Error('No key configured. Run: moly setup');
-    _resolvedAccount = privateKeyToAccount(pk as `0x${string}`);
+    const rawKey = config.privateKey;
+    if (!rawKey) throw new Error('No key configured. Run: moly setup');
+    const pk = (rawKey.startsWith('0x') ? rawKey : '0x' + rawKey) as `0x${string}`;
+    _resolvedAccount = privateKeyToAccount(pk);
     return _resolvedAccount;
   }
 
@@ -113,7 +136,7 @@ function buildRuntime(): Runtime {
     config,
     chainAddresses: chainCfg,
     publicClient,
-    sdk,
+    get sdk() { return getSdk(); },
     getWallet,
     getAddress,
     getL2PublicClient,

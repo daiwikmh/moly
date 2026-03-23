@@ -41,6 +41,13 @@ function setAlert(params) {
   if (channel !== "telegram" && channel !== "webhook") {
     throw new Error(`Invalid channel: ${params.channel}. Valid: telegram, webhook`);
   }
+  const channels = loadChannelConfig();
+  if (channel === "telegram" && !channels.telegram?.token) {
+    throw new Error("Telegram not configured. Use configure_alert_channels with telegram_token and telegram_chat_id first.");
+  }
+  if (channel === "webhook" && !channels.webhook?.url) {
+    throw new Error("Webhook not configured. Use configure_alert_channels with webhook_url first.");
+  }
   return addAlert({ condition, threshold: params.threshold, channel });
 }
 function listAlerts() {

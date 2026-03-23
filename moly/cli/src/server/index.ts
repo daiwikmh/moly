@@ -173,6 +173,18 @@ server.tool(
   })
 );
 
+// ── Wallet ──────────────────────────────────────────────────────────────────
+
+server.tool(
+  'get_wallet',
+  'Get the configured wallet public address.',
+  {},
+  async () => {
+    const addr = rt.getAddress();
+    return { content: [{ type: 'text', text: JSON.stringify({ address: addr }, null, 2) }] };
+  }
+);
+
 // ── Settings ─────────────────────────────────────────────────────────────────
 
 server.tool(

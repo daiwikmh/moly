@@ -12,7 +12,6 @@ import {
 } from '@clack/prompts';
 import { saveConfig, getConfigPath } from '../config/store.js';
 import type { MolyConfig, Network, Mode, AiProvider, AiClient, ChainScope, OwsConfig } from '../config/types.js';
-import { generatePrivateKey } from 'viem/accounts';
 
 function bail(value: unknown): never {
   cancel('Setup cancelled.');
@@ -158,62 +157,130 @@ export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: bool
 
   if (keySource === 'ows') {
     let owsSdk: any = null;
-    let wallets: Array<{ id: string; name: string; chain: string; address: string }> = [];
+    let wallets: Array<any> = [];
 
-    try {
-      const { createRequire } = await import('module');
-      const _req = createRequire(import.meta.url);
-      owsSdk = _req('@open-wallet-standard/core');
-      wallets = owsSdk.listWallets();
-    } catch {
-      note('OWS SDK not found. Install it first:\ncurl -fsSL https://openwallet.sh/install.sh | bash\nnpm install @open-wallet-standard/core\nFalling back to raw key storage.', 'OWS not available');
+    const { createRequire } = await import('module');
+    const { homedir } = await import('os');
+    const { join } = await import('path');
+    const owsDir = join(homedir(), '.moly');
+
+    // try local require, then ~/.moly, then global
+    const searchPaths = [
+      () => createRequire(import.meta.url)('@open-wallet-standard/core'),
+      () => createRequire(join(owsDir, 'package.json'))('@open-wallet-standard/core'),
+      () => createRequire(join(homedir(), '.nvm', 'versions', 'node', process.version, 'lib', 'node_modules', 'package.json'))('@open-wallet-standard/core'),
+    ];
+
+    for (const loader of searchPaths) {
+      try { owsSdk = loader(); break; } catch {}
+    }
+
+    if (!owsSdk) {
+      const s = spinner();
+      s.start('Installing @open-wallet-standard/core...');
+      try {
+        const { execSync } = await import('child_process');
+        const { mkdirSync, existsSync, writeFileSync } = await import('fs');
+        if (!existsSync(owsDir)) mkdirSync(owsDir, { recursive: true });
+        if (!existsSync(join(owsDir, 'package.json'))) {
+          writeFileSync(join(owsDir, 'package.json'), '{"name":"moly-deps","private":true}');
+        }
+        execSync('npm install @open-wallet-standard/core', { stdio: 'pipe', cwd: owsDir });
+        s.stop('OWS SDK installed.');
+        owsSdk = createRequire(join(owsDir, 'package.json'))('@open-wallet-standard/core');
+      } catch (installErr: any) {
+        s.stop('Auto-install failed: ' + installErr.message);
+        note('Could not install OWS SDK automatically.\nFalling back to raw key storage.', 'OWS not available');
+      }
+    }
+
+    if (owsSdk) {
+      try { wallets = owsSdk.listWallets(); } catch {}
     }
 
     if (owsSdk && wallets.length > 0) {
-      const walletName = check(
+      const evmAddr = (w: any) => w.accounts?.find((a: any) => a.chainId === 'evm')?.address ?? '';
+      const walletAction = check(
         await select({
-          message: 'Which OWS wallet?',
-          options: wallets.map((w) => ({
-            value: w.name,
-            label: `${w.name}  (${w.address.slice(0, 8)}...)`,
-          })),
+          message: 'OWS wallet?',
+          options: [
+            ...wallets.map((w: any) => ({
+              value: w.name,
+              label: `${w.name}  (${evmAddr(w).slice(0, 10)}...)`,
+            })),
+            { value: '__import__', label: 'Import existing private key into new wallet' },
+            { value: '__create__', label: 'Create new wallet' },
+          ],
         })
       ) as string;
 
-      const passphrase = check(
-        await password({
-          message: 'OWS passphrase:',
-          mask: '*',
-        })
-      ) as string;
+      if (walletAction === '__import__' || walletAction === '__create__') {
+        const wName = check(
+          await text({ message: 'Wallet name:', placeholder: 'moly', initialValue: 'moly' })
+        ) as string;
+        const pp = check(
+          await password({ message: 'Passphrase (encrypts the vault):', mask: '*' })
+        ) as string;
 
-      ows = { walletName, passphrase: passphrase.trim() };
+        try {
+          if (walletAction === '__import__') {
+            const pk = check(
+              await password({ message: 'Private key (0x...):', mask: '*' })
+            ) as string;
+            owsSdk.importWalletPrivateKey(wName.trim() || 'moly', pk.trim(), pp.trim() || undefined);
+          } else {
+            owsSdk.createWallet(wName.trim() || 'moly', pp.trim() || undefined);
+          }
+          ows = { walletName: wName.trim() || 'moly', passphrase: pp.trim() };
+        } catch (err: any) {
+          note('OWS operation failed: ' + err.message + '\nFalling back to raw key.', 'Fallback');
+          const pk = check(
+            await password({ message: 'Private key (0x...):', mask: '*' })
+          ) as string;
+          const t = pk.trim(); privateKey = t ? (t.startsWith('0x') ? t : '0x' + t) : null;
+        }
+      } else {
+        const passphrase = check(
+          await password({ message: 'OWS passphrase:', mask: '*' })
+        ) as string;
+        ows = { walletName: walletAction, passphrase: passphrase.trim() };
+      }
 
     } else if (owsSdk && wallets.length === 0) {
-      note('No OWS wallets found. Creating one for you...', 'New OWS wallet');
+      const walletAction = check(
+        await select({
+          message: 'No wallets found. What would you like to do?',
+          options: [
+            { value: 'import', label: 'Import existing private key' },
+            { value: 'create', label: 'Generate new wallet' },
+          ],
+        })
+      ) as string;
 
       const walletName = check(
         await text({ message: 'Wallet name:', placeholder: 'moly', initialValue: 'moly' })
       ) as string;
 
       const passphrase = check(
-        await password({ message: 'Set a passphrase (used to encrypt the key):', mask: '*' })
+        await password({ message: 'Passphrase (encrypts the vault):', mask: '*' })
       ) as string;
 
-      const s = spinner();
-      s.start('Generating wallet...');
       try {
-        const privateKey = generatePrivateKey();
-        owsSdk.createWallet(walletName.trim() || 'moly', passphrase.trim(), privateKey);
-        s.stop('Wallet created.');
+        if (walletAction === 'import') {
+          const pk = check(
+            await password({ message: 'Private key (0x...):', mask: '*' })
+          ) as string;
+          owsSdk.importWalletPrivateKey(walletName.trim() || 'moly', pk.trim(), passphrase.trim() || undefined);
+        } else {
+          owsSdk.createWallet(walletName.trim() || 'moly', passphrase.trim() || undefined);
+        }
         ows = { walletName: walletName.trim() || 'moly', passphrase: passphrase.trim() };
       } catch (err: any) {
-        s.stop('Auto-create failed: ' + err.message);
-        note('Falling back to raw private key storage.', 'Fallback');
+        note('OWS operation failed: ' + err.message + '\nFalling back to raw key.', 'Fallback');
         const pk = check(
-          await password({ message: 'Enter or paste a private key (0x...) — or generate one:', mask: '*' })
+          await password({ message: 'Private key (0x...):', mask: '*' })
         ) as string;
-        privateKey = pk.trim() || null;
+        const t = pk.trim(); privateKey = t ? (t.startsWith('0x') ? t : '0x' + t) : null;
       }
     }
   } else if (keySource === 'raw') {
@@ -223,7 +290,8 @@ export async function runWizard(): Promise<{ cfg: MolyConfig; terminalMode: bool
         mask: '*',
       })
     ) as string;
-    privateKey = pk.trim() || null;
+    const trimmed = pk.trim();
+    privateKey = trimmed ? (trimmed.startsWith('0x') ? trimmed : '0x' + trimmed) : null;
   }
 
   // ── AI Provider ───────────────────────────────────────────────────

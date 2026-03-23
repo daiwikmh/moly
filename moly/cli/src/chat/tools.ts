@@ -160,6 +160,11 @@ export const TOOL_DEFS: ToolDef[] = [
     },
   },
   {
+    name: 'get_wallet',
+    description: 'Get the configured wallet public address.',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
     name: 'get_settings',
     description: 'Get current Moly configuration.',
     parameters: { type: 'object', properties: {} },
@@ -340,6 +345,12 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
       case 'get_proposals':       result = await getProposals(args.count as number | undefined); break;
       case 'get_proposal':        result = await getProposal(args.proposal_id as number); break;
       case 'cast_vote':           result = await castVote(args.proposal_id as number, args.support as boolean, args.dry_run as boolean | undefined); break;
+      case 'get_wallet': {
+        const { getRuntime } = await import('../server/runtime.js');
+        const addr = getRuntime().getAddress();
+        result = { address: addr };
+        break;
+      }
       case 'get_settings':        result = getSettings(); break;
       case 'update_settings':     result = updateSettings(args as any); break;
       case 'get_l2_balance':      result = await getL2Balance(args.source_chain as any, args.address as string | undefined); break;

@@ -1,40 +1,21 @@
 #!/usr/bin/env node
 import {
   getSettings,
-  stakeEth,
   updateSettings
-} from "./chunk-ZX6OYPKV.js";
-import {
-  castVote,
-  claimWithdrawals,
-  getProposal,
-  getProposals,
-  getWithdrawalRequests,
-  getWithdrawalStatus,
-  requestWithdrawal
-} from "./chunk-C7R33HEF.js";
+} from "./chunk-DD4OV6ZQ.js";
 import {
   configureAlertChannels,
   listAlerts,
   removeAlertById,
   setAlert
-} from "./chunk-6UIRFWG4.js";
-import "./chunk-6F64RPQQ.js";
+} from "./chunk-CZ3EIJUF.js";
 import {
   bridgeToEthereum,
   getBridgeQuote,
   getBridgeStatus,
   getL2Balance,
   getTotalPosition
-} from "./chunk-LRR663PB.js";
-import {
-  getBalance,
-  getConversionRate,
-  getRewards,
-  unwrapWsteth,
-  wrapSteth
-} from "./chunk-WMGNTYBF.js";
-import "./chunk-P6VFMSPM.js";
+} from "./chunk-HH4NH4N5.js";
 import {
   loadBounds,
   saveBounds
@@ -45,6 +26,32 @@ import {
   logEntry,
   queryLedger
 } from "./chunk-RR74UAKD.js";
+import "./chunk-6F64RPQQ.js";
+import {
+  getBalance,
+  getRewards
+} from "./chunk-2UMD5GE7.js";
+import {
+  stakeEth
+} from "./chunk-E4XSJINX.js";
+import {
+  claimWithdrawals,
+  getWithdrawalRequests,
+  getWithdrawalStatus,
+  requestWithdrawal
+} from "./chunk-P66V3426.js";
+import {
+  getConversionRate,
+  unwrapWsteth,
+  wrapSteth
+} from "./chunk-KS2ALUDE.js";
+import {
+  castVote,
+  getProposal,
+  getProposals
+} from "./chunk-RVYPT5AF.js";
+import "./chunk-2MF5MDUT.js";
+import "./chunk-P6VFMSPM.js";
 import "./chunk-PDX44BCA.js";
 
 // src/chat/session.ts
@@ -349,6 +356,11 @@ var TOOL_DEFS = [
     }
   },
   {
+    name: "get_wallet",
+    description: "Get the configured wallet public address.",
+    parameters: { type: "object", properties: {} }
+  },
+  {
     name: "get_settings",
     description: "Get current Moly configuration.",
     parameters: { type: "object", properties: {} }
@@ -554,6 +566,12 @@ async function executeTool(name, args) {
       case "cast_vote":
         result = await castVote(args.proposal_id, args.support, args.dry_run);
         break;
+      case "get_wallet": {
+        const { getRuntime } = await import("./runtime-PGSRZ7YU.js");
+        const addr = getRuntime().getAddress();
+        result = { address: addr };
+        break;
+      }
       case "get_settings":
         result = getSettings();
         break;
