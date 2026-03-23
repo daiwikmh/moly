@@ -2,15 +2,43 @@
 
 ## Core Fields
 
-**teamUUID:** 902a0b8552374b439be7470795c6355f
+**teamUUID:** 389b73ae3678415fb433f8f4fdab74bf
 
 **name:** Moly
 
 **description:**
 Moly is an open-source MCP server and CLI that gives any AI agent full access to the Lido staking protocol. One npm package, 28 tools: stake ETH, manage withdrawals, wrap/unwrap stETH, vote on governance, monitor positions across L1 and L2, set alerts and safety bounds. Works with Claude, Cursor, Windsurf, or any MCP-compatible client. Wallet keys stay local via OWS encrypted vault.
 
+Workflow:
+
+![Moly Workflow](https://moly-lido.vercel.app/WORKFLOW.png)
+
+```
+User / AI Agent
+      │
+      │  natural language
+      ▼
+  Moly CLI  ──────────────────────────────────────────────────────────┐
+  (stdio MCP server)                                                   │
+      │                                                                │
+      ├── read tools (balance, rewards, proposals) ──► viem eth_call ──► Lido contracts
+      │                                                                │
+      └── write tools (stake, withdraw, wrap, vote)                   │
+              │                                                        │
+              ▼                                                        │
+        OWS Vault (~/.ows/)                                           │
+        AES-256-GCM encrypted                                         │
+              │  exportWallet() → secp256k1 key                       │
+              ▼                                                        │
+        viem walletClient ──────────────────────────────────────────► Lido contracts
+                                                                       │
+                                                              Hoodi Testnet / Mainnet
+```
+
+CLI on top of OWS: the `moly` binary wraps the OWS vault entirely — `moly setup` imports or generates a key into the encrypted vault, and every tool call resolves the signing key from the vault at runtime. The private key never touches disk in plaintext. Users can also run `moly stake 0.1`, `moly balance`, `moly proposals` directly from the terminal without any AI agent involved.
+
 **problemStatement:**
-AI agents today cannot interact with DeFi protocols without developers writing custom integration code for each protocol and each agent. A user who wants their AI assistant to stake ETH, check rewards, or vote on governance has to build that bridge themselves. Moly eliminates this gap for Lido: install one package, run the setup wizard, and any MCP-compatible AI agent can stake, unstake, wrap, govern, bridge, and monitor positions through natural language. No custom code, no API wrappers, no protocol expertise required.
+There is currently no institutional-grade MCP server that both protects your wallet and handles the full complexity of Lido protocol interactions. Existing integrations are either REST API wrappers relabelled as MCP with no real wallet security, or raw key setups that expose private keys on disk. Neither satisfies the bar for agents managing real ETH at scale. Moly solves this: wallet keys are secured in an AES-256-GCM encrypted OWS vault and never touch disk in plaintext, while the full Lido surface — staking, withdrawals, wrapping, governance, cross-chain bridging, position monitoring, and alerts — is exposed as 28 callable MCP tools with dry-run support on every write operation. Any MCP-compatible AI agent can stake, unstake, wrap, govern, and monitor Lido positions through natural language with no custom code required.
 
 **repoURL:** https://github.com/daiwikmh/moly
 
@@ -31,6 +59,7 @@ AI agents today cannot interact with DeFi protocols without developers writing c
 - https://moly-lido.vercel.app/molyconfig.png
 - https://moly-lido.vercel.app/molyterminal.png
 - https://moly-lido.vercel.app/stakemoly.png
+- https://moly-lido.vercel.app/WORKFLOW.png
 
 ---
 
@@ -120,6 +149,7 @@ network: Hoodi Testnet, mode: live
 **intentionNotes:** Moly is being developed as a long-term open-source tool for AI-native DeFi access. Post-hackathon plans include expanding to more protocols beyond Lido, adding multi-sig support, and publishing to MCP registries for broader agent adoption.
 
 **helpfulResources:**
+- https://moly-lido.vercel.app/docs
 - https://docs.lido.fi
 - https://docs.lido.fi/deployed-contracts
 - https://github.com/lidofinance/lido-ethereum-sdk
@@ -157,10 +187,10 @@ network: Hoodi Testnet, mode: live
 
 ```json
 {
-  "teamUUID": "902a0b8552374b439be7470795c6355f",
+  "teamUUID": "389b73ae3678415fb433f8f4fdab74bf",
   "name": "Moly",
-  "description": "Moly is an open-source MCP server and CLI that gives any AI agent full access to the Lido staking protocol. One npm package, 28 tools: stake ETH, manage withdrawals, wrap/unwrap stETH, vote on governance, monitor positions across L1 and L2, set alerts and safety bounds. Works with Claude, Cursor, Windsurf, or any MCP-compatible client. Wallet keys stay local via OWS encrypted vault.",
-  "problemStatement": "AI agents today cannot interact with DeFi protocols without developers writing custom integration code for each protocol and each agent. A user who wants their AI assistant to stake ETH, check rewards, or vote on governance has to build that bridge themselves. Moly eliminates this gap for Lido: install one package, run the setup wizard, and any MCP-compatible AI agent can stake, unstake, wrap, govern, bridge, and monitor positions through natural language. No custom code, no API wrappers, no protocol expertise required.",
+  "description": "Moly is an open-source MCP server and CLI that gives any AI agent full access to the Lido staking protocol. One npm package, 28 tools: stake ETH, manage withdrawals, wrap/unwrap stETH, vote on governance, monitor positions across L1 and L2, set alerts and safety bounds. Works with Claude, Cursor, Windsurf, or any MCP-compatible client. Wallet keys stay local via OWS encrypted vault. The moly CLI wraps the OWS vault entirely — setup imports or generates a key into AES-256-GCM encrypted storage, and every write tool resolves the signing key from the vault at runtime. Private key never touches disk in plaintext. Users can also call tools directly from the terminal (moly stake, moly balance, moly proposals) without any AI agent.",
+  "problemStatement": "There is currently no institutional-grade MCP server that both protects your wallet and handles the full complexity of Lido protocol interactions. Existing integrations are either REST API wrappers relabelled as MCP with no real wallet security, or raw key setups that expose private keys on disk. Neither satisfies the bar for agents managing real ETH at scale. Moly solves this: wallet keys are secured in an AES-256-GCM encrypted OWS vault and never touch disk in plaintext, while the full Lido surface — staking, withdrawals, wrapping, governance, cross-chain bridging, position monitoring, and alerts — is exposed as 28 callable MCP tools with dry-run support on every write operation. Any MCP-compatible AI agent can stake, unstake, wrap, govern, and monitor Lido positions through natural language with no custom code required.",
   "repoURL": "https://github.com/daiwikmh/moly",
   "trackUUIDs": [
     "4b98c9cf6e9b42dfbb500a648884e2ab",
@@ -171,7 +201,7 @@ network: Hoodi Testnet, mode: live
   "coverImageURL": "https://moly-lido.vercel.app/molylanding.png",
   "pictures": "https://moly-lido.vercel.app/molylanding.png https://moly-lido.vercel.app/molyfeatures.png https://moly-lido.vercel.app/molyconfig.png https://moly-lido.vercel.app/molyterminal.png https://moly-lido.vercel.app/stakemoly.png",
   "videoURL": "https://youtu.be/Y22JoTdWLtI",
-  "conversationLog": "NEEDS_LOG",
+  "conversationLog": "Built through human-agent collaboration using Claude Code across multiple sessions. Phase 1: architecture and monorepo scaffolding (CLI + Bun MCP server + Next.js dashboard). Phase 2: CLI package with 28 Lido tools via stdio MCP, setup wizard, simulation and live modes. Phase 3: OWS wallet integration — discovered SDK returns JSON string from exportWallet(), fixed auto-install path, importWalletPrivateKey API. Phase 4: Dashboard, docs site, skill document, /api/skill endpoint. Phase 5: Bug fixes on Hoodi testnet — Lido SDK web3Provider error bypassed with direct viem writeContract, private key normalization, npm name validation. Phase 6: Direct CLI commands (moly stake, moly balance, etc.) tested locally before publish. Versions 1.0.x through 1.2.1 published to npm. Live stake of 0.01 ETH on Hoodi confirmed: 0xaa4f58a777147b40638a6aee62dc7f0bc3658e82094c8bfd5c2866c8342eb99e",
   "submissionMetadata": {
     "agentFramework": "other",
     "agentFrameworkOther": "Custom agentic loop with direct provider API calls (Anthropic, OpenRouter, Gemini) in the CLI terminal; Vercel AI SDK for the web dashboard chat",
@@ -218,6 +248,9 @@ network: Hoodi Testnet, mode: live
 
 ## IDs (do not share publicly)
 
-teamUUID: 902a0b8552374b439be7470795c6355f
+teamUUID: 389b73ae3678415fb433f8f4fdab74bf
+teamName: justaguy
+inviteCode: bb7e8136eca1
+role: admin
 participantID: 98213291c8d340358b1a013785d5579d
-apiKey: sk-synth-673b0ed8a6f3afd33aed75cee3800f0946a648ff9adf3b42
+apiKey: [redacted — use from memory]
