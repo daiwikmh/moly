@@ -20,30 +20,12 @@ const SIDEBAR: Array<{
       { title: "Installation", href: "/docs/setup" },
       { title: "Configuration", href: "/docs/configuration" },
       { title: "Architecture", href: "/docs/architecture" },
-    ],
-  },
-  {
-    label: "CLI Package",
-    items: [
       {
-        title: "npx @moly-mcp/lido",
+        title: "CLI — npx @moly-mcp/lido",
         href: "/docs/cli",
         children: [
           { title: "Setup Wizard", href: "/docs/cli/setup" },
           { title: "Configuration Reference", href: "/docs/cli/configuration" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "MCP Server",
-    items: [
-      {
-        title: "Overview",
-        href: "/docs/mcp-server",
-        children: [
-          { title: "Connect Any Agent", href: "/docs/mcp-server/connect" },
-          { title: "Code Samples", href: "/docs/mcp-server/code-samples" },
         ],
       },
     ],
@@ -71,6 +53,19 @@ const SIDEBAR: Array<{
       { title: "Wrap & Unwrap", href: "/docs/guides/wrap-unwrap" },
       { title: "Withdrawals", href: "/docs/guides/withdrawals" },
       { title: "Governance Voting", href: "/docs/guides/governance" },
+    ],
+  },
+  {
+    label: "MCP Server",
+    items: [
+      {
+        title: "Overview",
+        href: "/docs/mcp-server",
+        children: [
+          { title: "Connect Any Agent", href: "/docs/mcp-server/connect" },
+          { title: "Code Samples", href: "/docs/mcp-server/code-samples" },
+        ],
+      },
     ],
   },
   {

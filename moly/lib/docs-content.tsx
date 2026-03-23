@@ -107,18 +107,11 @@ export const PAGES: Record<string, DocPage> = {
         <P>Moly is an open-source project that brings the Lido staking protocol to AI assistants via the Model Context Protocol (MCP). Install the CLI, run the setup wizard, and your AI agent gets 28 Lido tools instantly.</P>
 
         <H2>Quickstart</H2>
-        <P>Add the Moly MCP server to your AI tool. One package, zero config:</P>
-        <Pre title="Claude Code / Cursor / Claude Desktop">{`{
-  "mcpServers": {
-    "moly": {
-      "command": "npx",
-      "args": ["@moly-mcp/lido", "--server"]
-    }
-  }
-}`}</Pre>
-        <P>That&apos;s it. Your AI assistant now has 28 Lido tools — balances, staking, wrapping, withdrawals, governance, bridging, alerts, and bounds. Run <Code>npx @moly-mcp/lido</Code> once first to configure network, mode, and wallet via the setup wizard.</P>
+        <P>Install the CLI and run the setup wizard:</P>
+        <Pre title="Terminal">{`npx @moly-mcp/lido`}</Pre>
+        <P>This configures network, mode, and wallet, then starts the MCP server. Your AI assistant gets 28 Lido tools — balances, staking, wrapping, withdrawals, governance, bridging, alerts, and bounds.</P>
 
-        <Callout type="tip">Want mainnet or live mode? Add <a href="/docs/mcp-server">custom headers</a> to configure.</Callout>
+        <Callout type="tip">Want mainnet or live mode? Run <Code>moly setup</Code> or use the <Code>update_settings</Code> tool mid-session.</Callout>
 
         <H2>What You Get</H2>
         <Table headers={["Feature", "Description"]} rows={[
@@ -165,16 +158,10 @@ export const PAGES: Record<string, DocPage> = {
         <Pre title="Terminal">{`npx @moly-mcp/lido`}</Pre>
         <P>This walks you through network, mode, wallet (private key or OWS vault), and AI provider. Config is saved to <Code>~/.moly/config.json</Code>.</P>
 
-        <H2>Step 2: Add the MCP Server</H2>
-        <P>Add this to your agent&apos;s MCP config file (see <a href="/docs/mcp-server/connect">Connect Any Agent</a> for where each agent stores its config):</P>
-        <Pre title="MCP Config">{`{
-  "mcpServers": {
-    "moly": {
-      "command": "npx",
-      "args": ["@moly-mcp/lido", "--server"]
-    }
-  }
-}`}</Pre>
+        <H2>Step 2: Start the MCP Server</H2>
+        <P>The setup wizard starts the MCP server automatically. To restart it manually:</P>
+        <Pre title="Terminal">{`moly --server`}</Pre>
+        <P>See <a href="/docs/mcp-server/connect">Connect Any Agent</a> for agent-specific config.</P>
 
         <H2>Step 3: Restart Your Agent</H2>
         <P>Most agents require a restart after config changes. After restarting, all 28 Lido tools will be available.</P>
@@ -240,6 +227,7 @@ REFERRAL_ADDRESS=0x0000000000000000000000000000000000000000`}</Pre>
     content: (
       <>
         <P>Moly has three packages: the CLI (<Code>@moly-mcp/lido</Code>), a web dashboard on Vercel, and these docs.</P>
+        <img src="/WORKFLOW.png" alt="Moly Workflow" style={{ width: "100%", borderRadius: "8px", margin: "1.5rem 0" }} />
         <H2>Request Flow (CLI MCP Server)</H2>
         <Pre>{`AI Agent                  Moly CLI (stdio)            Ethereum
   │                            │                            │
